@@ -7,16 +7,41 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         /* CSS STYLES */
-        :root { --pb-blue: #1040D5; --bg: #F0F2F5; --green: #25D366; --red: #FF3B30; --orange: #FF9500; --text-dark: #1C1E21; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
-        .mobile-frame { width: 100%; max-width: 450px; background: #fff; display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        :root { 
+            --pb-blue: #1040D5; 
+            --bg: #F0F2F5; 
+            --card-bg: #ffffff;
+            --text-main: #1C1E21;
+            --text-sub: #666666;
+            --border: #eeeeee;
+            --green: #25D366; 
+            --red: #FF3B30; 
+            --orange: #FF9500; 
+        }
+
+        /* DARK MODE VARIABLES */
+        body.dark-mode {
+            --pb-blue: #3b6bf9;
+            --bg: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-sub: #a0a0a0;
+            --border: #333333;
+        }
+
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text-main); margin: 0; display: flex; justify-content: center; height: 100vh; overflow: hidden; transition: background 0.3s, color 0.3s; }
+        .mobile-frame { width: 100%; max-width: 450px; background: var(--card-bg); display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); height: 100%; }
+        
+        /* LOGIN SCREEN */
+        #loginScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+        .login-logo { width: 80px; height: 80px; background: var(--pb-blue); border-radius: 15px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold; box-shadow: 0 10px 20px rgba(16, 64, 213, 0.3); }
+        .login-box { background: var(--card-bg); padding: 30px; border-radius: 12px; width: 100%; max-width: 300px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border: 1px solid var(--border); }
         
         /* HEADER */
         .header { background: var(--pb-blue); color: white; padding: 15px 15px 5px 15px; flex-shrink: 0; }
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .business-name { font-weight: 700; font-size: 1.2rem; }
         
-        /* CALENDAR BUTTON */
         .cal-wrapper { position: relative; display: inline-block; cursor: pointer; }
         .cal-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 500; pointer-events: none; }
         .date-input-hidden { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10; }
@@ -28,19 +53,21 @@
         .date-day { font-size: 0.7rem; text-transform: uppercase; font-weight: 600; }
         .date-num { font-size: 1.2rem; font-weight: 700; margin-top: 2px; }
 
-        /* General Styles */
+        /* STATS */
         .stats-row { display: flex; gap: 10px; padding: 15px; background: var(--bg); margin-top: -1px; }
-        .stat-card { flex: 1; background: white; border-radius: 8px; padding: 15px 5px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e0e0e0; }
+        .stat-card { flex: 1; background: var(--card-bg); border-radius: 8px; padding: 15px 5px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid var(--border); }
         .stat-val { display: block; font-size: 1.2rem; font-weight: 700; margin-bottom: 2px; }
-        .stat-lbl { font-size: 0.75rem; color: #666; }
+        .stat-lbl { font-size: 0.75rem; color: var(--text-sub); }
 
+        /* VIEWS */
         .view-section { display: none; flex: 1; overflow-y: auto; background: var(--bg); padding-bottom: 80px; }
         .view-section.active { display: block; }
 
+        /* CARDS */
         .staff-list { padding: 0 15px; }
-        .staff-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; }
+        .staff-card { background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; border: 1px solid var(--border); }
         .card-row-top { display: flex; justify-content: space-between; align-items: center; }
-        .card-row-bottom { display: flex; justify-content: space-between; border-top: 1px solid #f0f0f0; padding-top: 10px; }
+        .card-row-bottom { display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 10px; }
 
         .avatar { width: 40px; height: 40px; background: #EBF0FF; color: var(--pb-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; font-size: 1.1rem; }
         .pill { padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
@@ -53,50 +80,80 @@
         .mini-stat { display: flex; flex-direction: column; text-align: center; flex: 1; }
         .mini-stat:first-child { text-align: left; }
         .mini-stat:last-child { text-align: right; }
-        .mini-label { font-size: 0.65rem; color: #888; text-transform: uppercase; margin-bottom: 3px; }
+        .mini-label { font-size: 0.65rem; color: var(--text-sub); text-transform: uppercase; margin-bottom: 3px; }
         .mini-val { font-size: 0.95rem; font-weight: 600; font-family: monospace; }
         
-        .val-work { color: var(--text-dark); }
+        .val-work { color: var(--text-main); }
         .val-break { color: var(--orange); }
-        .val-total { color: #666; }
+        .val-total { color: var(--text-sub); }
         .ticking { color: var(--pb-blue); }
 
-        .add-staff-box { background: white; padding: 20px; margin: 15px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        /* MANAGE STAFF */
+        .add-staff-box { background: var(--card-bg); padding: 20px; margin: 15px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid var(--border); }
         .input-row { display: flex; gap: 10px; }
-        .pb-input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; }
+        .pb-input { flex: 1; padding: 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text-main); border-radius: 6px; font-size: 1rem; }
         .pb-btn { background: var(--pb-blue); color: white; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
         .manage-list { padding: 0 15px; }
-        .manage-item { background: white; padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .manage-item { background: var(--card-bg); padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .manage-item:first-child { border-top-left-radius: 8px; border-top-right-radius: 8px; }
         .manage-item:last-child { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; border-bottom: none; }
 
-        .history-date-block { background: white; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden; margin-left: 15px; margin-right: 15px; }
-        .h-header { background: #f8f9fa; padding: 10px 15px; font-weight: bold; font-size: 0.9rem; color: #333; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
-        .h-row { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; font-size: 0.9rem; }
-        .h-name { font-weight: 600; color: var(--text-dark); }
+        /* HISTORY */
+        .history-controls { padding: 15px; display:flex; gap:10px; justify-content: center; }
+        .history-btn { padding: 8px 15px; border-radius: 20px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-sub); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+        .history-btn.active { background: var(--pb-blue); color: white; border-color: var(--pb-blue); }
+
+        .history-date-block { background: var(--card-bg); margin-bottom: 10px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden; margin-left: 15px; margin-right: 15px; border: 1px solid var(--border); }
+        .h-header { background: var(--bg); padding: 10px 15px; font-weight: bold; font-size: 0.9rem; color: var(--text-main); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .h-row { padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px; }
+        .h-main-row { display: flex; justify-content: space-between; font-size: 0.95rem; }
+        .h-name { font-weight: 600; color: var(--text-main); }
         .h-time { font-family: monospace; color: var(--pb-blue); font-weight: 600; }
+        .h-details { display: flex; gap: 10px; font-size: 0.75rem; color: var(--text-sub); background: var(--bg); padding: 5px 8px; border-radius: 4px; }
+        .h-detail-item { display: flex; align-items: center; gap: 4px; }
 
-        .profile-container { padding: 20px; background: white; height: 100%; }
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-size: 0.8rem; color: #666; margin-bottom: 5px; }
-        .input-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;}
-        .btn-save { background: var(--pb-blue); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .btn-danger { background: white; color: red; border: 1px solid red; margin-top: 10px; width: 100%; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        /* PROFILE (Revamped) */
+        .profile-container { padding: 20px; background: var(--bg); min-height: 100%; box-sizing: border-box; }
+        .setting-card { background: var(--card-bg); border-radius: 12px; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); overflow: hidden; }
+        
+        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid var(--border); }
+        .setting-item:last-child { border-bottom: none; }
+        
+        .setting-label { font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; gap: 10px; }
+        .setting-label i { width: 24px; text-align: center; color: var(--pb-blue); }
+        
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 22px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--pb-blue); }
+        input:checked + .slider:before { transform: translateX(18px); }
 
-        .bottom-nav { background: white; border-top: 1px solid #E4E6EB; display: flex; justify-content: space-around; padding: 10px 0; position: absolute; bottom: 0; width: 100%; z-index: 10; }
+        .made-by { text-align: center; margin-top: 30px; margin-bottom: 40px; color: var(--text-sub); }
+        .made-by img { width: 50px; height: 50px; border-radius: 10px; margin-bottom: 10px; background: #ddd; }
+        .made-by h4 { margin: 0; font-size: 1rem; color: var(--text-main); }
+        .made-by p { margin: 2px 0 0 0; font-size: 0.75rem; }
+
+        .btn-logout { width: 100%; padding: 15px; border: none; background: var(--card-bg); color: var(--red); font-weight: bold; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-top: 10px; font-size: 1rem; cursor: pointer; }
+
+        /* BOTTOM NAV */
+        .bottom-nav { background: var(--card-bg); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px 0; position: absolute; bottom: 0; width: 100%; z-index: 10; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: #9CA3AF; font-size: 0.7rem; gap: 4px; cursor: pointer; }
         .nav-item.active { color: var(--pb-blue); font-weight: 600; }
         .nav-item i { font-size: 1.3rem; }
 
+        /* FAB */
         .fab { position: absolute; bottom: 80px; right: 20px; background: var(--pb-blue); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 64, 213, 0.4); z-index: 5; transition: transform 0.2s; }
         .fab:active { transform: scale(0.95); }
 
+        /* MODALS & OVERLAYS */
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 20; display: none; align-items: flex-end; }
-        .sheet { background: white; width: 100%; border-radius: 20px 20px 0 0; padding: 25px; box-sizing: border-box; animation: slideUp 0.25s; }
+        .sheet { background: var(--card-bg); width: 100%; border-radius: 20px 20px 0 0; padding: 25px; box-sizing: border-box; animation: slideUp 0.25s; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         
         .timer-grid { display: flex; gap: 10px; margin: 20px 0; }
-        .timer-box { flex: 1; background: #f8f9fa; padding: 10px 5px; border-radius: 8px; text-align: center; border: 1px solid #eee; }
+        .timer-box { flex: 1; background: var(--bg); padding: 10px 5px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
         .t-val { display: block; font-size: 1.3rem; font-weight: 700; font-family: monospace; color: var(--text-dark); }
         .t-lbl { font-size: 0.65rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px;}
 
@@ -105,13 +162,32 @@
         .btn-trash { color: #ccc; cursor: pointer; font-size: 1.2rem; }
         .btn-trash:hover { color: var(--red); }
         
-        .select-item { padding: 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .select-item { padding: 15px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .manual-box { background:var(--bg); padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border); }
+
+        /* TOAST & CONFIRM */
+        #toastContainer { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 1100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 400px; }
+        .toast { background: #333; color: white; padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; transform: translateY(20px); transition: all 0.3s; text-align: center; pointer-events: auto; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #0a6c38; }
+        .toast.error { background: #d32f2f; }
+
+        .confirm-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1200; display: none; align-items: center; justify-content: center; }
+        .confirm-box { background: var(--card-bg); width: 85%; max-width: 320px; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 5px 20px rgba(0,0,0,0.2); animation: popIn 0.2s; }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .confirm-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 8px; }
+        .confirm-msg { color: var(--text-sub); font-size: 0.9rem; margin-bottom: 20px; }
+        .confirm-actions { display: flex; gap: 10px; }
+        .c-btn { flex: 1; padding: 10px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; font-size: 0.9rem; }
+        .c-cancel { background: var(--bg); color: var(--text-main); }
+        .c-confirm { background: var(--pb-blue); color: white; }
+        .c-delete { background: var(--red); color: white; }
 
         @media screen and (max-width: 600px) {
-            body { background: #fff; height: 100dvh; width: 100vw; overflow: hidden; position: fixed; margin: 0; }
+            body { background: var(--bg); height: 100dvh; width: 100vw; overflow: hidden; position: fixed; margin: 0; }
             .mobile-frame { height: 100%; width: 100%; max-width: 100%; border-radius: 0; box-shadow: none; display: flex; flex-direction: column; }
             .view-section { flex: 1; overflow-y: auto; padding-bottom: 90px; -webkit-overflow-scrolling: touch; }
-            .bottom-nav { position: absolute; bottom: 0; width: 100%; padding-bottom: env(safe-area-inset-bottom); background: #fff; }
+            .bottom-nav { position: absolute; bottom: 0; width: 100%; padding-bottom: env(safe-area-inset-bottom); background: var(--card-bg); }
             .fab { bottom: calc(80px + env(safe-area-inset-bottom)); right: 20px; }
         }
     </style>
@@ -119,158 +195,363 @@
 <body>
 
 <div class="mobile-frame">
-    <div class="header">
-        <div class="top-bar">
-            <div class="business-name" id="displayBizName">My Business</div>
-            <label class="cal-wrapper">
-                <div class="cal-btn">
-                    <i class="fas fa-calendar-alt"></i> <span>Pick Date</span>
-                </div>
-                <input type="date" class="date-input-hidden" onchange="pickDate(this.value)">
-            </label>
-        </div>
-        <div class="date-strip" id="dateStrip"></div>
-    </div>
-
-    <div id="statsRow" class="stats-row">
-        <div class="stat-card">
-            <span class="stat-val" id="statP" style="color:var(--green)">0</span>
-            <span class="stat-lbl">Present</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-val" id="statA" style="color:var(--red)">0</span>
-            <span class="stat-lbl">Absent</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-val" id="statH">0h</span>
-            <span class="stat-lbl">Work Hrs</span>
-        </div>
-    </div>
-
-    <div id="view-attendance" class="view-section active">
-        <div class="staff-list" id="attendanceContainer"></div>
-        <button class="fab" onclick="openSelectStaffModal()"><i class="fas fa-plus"></i></button>
-    </div>
-
-    <div id="view-history" class="view-section">
-        <div style="padding:15px; text-align:center; font-weight:bold; color:#666;">History Log</div>
-        <div id="historyContainer" style="padding:10px;"></div>
-    </div>
-
-    <div id="view-staff" class="view-section">
-        <div class="add-staff-box">
-            <div style="margin-bottom:10px; font-weight:bold;">Add New Employee</div>
-            <div class="input-row">
-                <input type="text" id="newStaffInput" class="pb-input" placeholder="e.g. Jil Patel">
-                <button class="pb-btn" onclick="addNewStaff()">ADD</button>
+    <div id="toastContainer"></div>
+    <div id="customConfirm" class="confirm-overlay">
+        <div class="confirm-box">
+            <div class="confirm-title" id="confirmTitle">Confirm</div>
+            <div class="confirm-msg" id="confirmMsg">Are you sure?</div>
+            <div class="confirm-actions">
+                <button class="c-btn c-cancel" onclick="closeConfirm()">Cancel</button>
+                <button class="c-btn c-confirm" id="confirmBtnYes">Confirm</button>
             </div>
         </div>
-        <div style="padding:0 15px 10px 15px; font-size:0.8rem; color:#666; font-weight:bold; text-transform:uppercase;">Your Staff List</div>
-        <div class="manage-list" id="manageStaffContainer"></div>
     </div>
 
-    <div id="view-profile" class="view-section">
-        <div class="profile-container">
-            <h3>Settings</h3>
-            <div class="input-group">
-                <label>Business Name</label>
-                <input type="text" id="bizNameInput" placeholder="Enter name">
+    <div id="loginScreen">
+        <div class="login-logo">
+            <i class="fas fa-fingerprint"></i>
+        </div>
+        <div class="login-box">
+            <h3 style="margin-top:0; color:var(--text-main);">Welcome</h3>
+            <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:20px;">Please enter password to access.</div>
+            <input type="password" id="loginPassInput" class="pb-input" placeholder="Password" style="text-align:center; letter-spacing:5px; margin-bottom:15px; font-size:1.2rem;">
+            <button class="pb-btn" onclick="checkLogin()" style="width:100%; padding:15px;">LOGIN</button>
+           <!-- <div style="margin-top:15px; font-size:0.75rem; color:var(--text-sub);">Default: 1234</div> -->
+        </div>
+    </div>
+
+    <div id="mainApp" style="display:none; height:100%; flex-direction:column;">
+        
+        <div class="overlay" id="monthSelectModal" onclick="if(event.target===this) closeMonthModal()">
+            <div class="sheet">
+                <h3 style="color:var(--text-main);" id="monthSelectTitle">Select Month</h3>
+                <div style="font-size:0.8rem; color:var(--text-sub); margin-bottom:15px;">View report for:</div>
+                <input type="month" id="reportMonthInput" class="pb-input" style="width:100%; box-sizing:border-box; margin-bottom:20px;">
+                <button class="action-btn" onclick="generateStaffReport()" style="background:var(--pb-blue); color:white;">View Report</button>
+                <button class="action-btn" onclick="closeMonthModal()" style="background:var(--bg); color:var(--text-main); margin-top:10px;">Cancel</button>
             </div>
-            <button class="btn-save" onclick="saveProfile()">Save Changes</button>
-            <br><br>
-            <button class="btn-danger" onclick="resetAllData()">Reset All Data</button>
         </div>
-    </div>
 
-    <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab('attendance', this)">
-            <i class="fas fa-users"></i><span>Attendance</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('history', this)">
-            <i class="fas fa-history"></i><span>History</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('staff', this)">
-            <i class="fas fa-user-cog"></i><span>Staff</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('profile', this)">
-            <i class="fas fa-store"></i><span>Profile</span>
-        </div>
-    </div>
-
-    <div class="overlay" id="actionModal" onclick="if(event.target===this) closeModal()">
-        <div class="sheet">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 id="modalName" style="margin:0;">Name</h3>
-                <i class="fas fa-trash-alt btn-trash" onclick="removeStaffFromDay()" title="Remove from Today"></i>
+        <div class="header">
+            <div class="top-bar">
+                <div class="business-name" id="displayBizName">My Business</div>
+                <label class="cal-wrapper">
+                    <div class="cal-btn">
+                        <i class="fas fa-calendar-alt"></i> <span>Pick Date</span>
+                    </div>
+                    <input type="date" class="date-input-hidden" onchange="pickDate(this.value)">
+                </label>
             </div>
-            
-            <div class="timer-grid">
-                <div class="timer-box">
-                    <span class="t-val" id="modalWorkTimer">00:00:00</span>
-                    <span class="t-lbl">Work Time</span>
-                </div>
-                <div class="timer-box">
-                    <span class="t-val" id="modalBreakTimer" style="color:var(--orange)">00:00:00</span>
-                    <span class="t-lbl">Break Time</span>
-                </div>
-                <div class="timer-box" style="background:#eef2ff; border-color:#dbeafe;">
-                    <span class="t-val" id="modalTotalTimer" style="color:var(--pb-blue)">00:00:00</span>
-                    <span class="t-lbl">Shift Duration</span>
+            <div class="date-strip" id="dateStrip"></div>
+        </div>
+
+        <div id="statsRow" class="stats-row">
+            <div class="stat-card">
+                <span class="stat-val" id="statP" style="color:var(--green)">0</span>
+                <span class="stat-lbl">Present</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="statA" style="color:var(--red)">0</span>
+                <span class="stat-lbl">Absent</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="statH">0h</span>
+                <span class="stat-lbl">Work Hrs</span>
+            </div>
+        </div>
+
+        <div id="view-attendance" class="view-section active">
+            <div class="staff-list" id="attendanceContainer"></div>
+            <button class="fab" onclick="openSelectStaffModal()"><i class="fas fa-plus"></i></button>
+        </div>
+
+        <div id="view-history" class="view-section">
+            <div class="history-controls">
+                <div class="history-btn active" id="btnHistDaily" onclick="setHistoryMode('daily')">Daily View</div>
+                <div class="history-btn" id="btnHistStaff" onclick="setHistoryMode('staff')">By Staff</div>
+            </div>
+            <div id="historyContainer" style="padding:10px;"></div>
+        </div>
+
+        <div id="view-staff" class="view-section">
+            <div class="add-staff-box">
+                <div style="margin-bottom:10px; font-weight:bold;">Add New Employee</div>
+                <div class="input-row">
+                    <input type="text" id="newStaffInput" class="pb-input" placeholder="e.g. Jil Patel">
+                    <button class="pb-btn" onclick="addNewStaff()">ADD</button>
                 </div>
             </div>
-
-            <div id="modalActions"></div>
-            <button class="action-btn" onclick="closeModal()" style="background:#f0f2f5; color:#333; margin-top:10px;">Close</button>
+            <div style="padding:0 15px 10px 15px; font-size:0.8rem; color:var(--text-sub); font-weight:bold; text-transform:uppercase;">Your Staff List</div>
+            <div class="manage-list" id="manageStaffContainer"></div>
         </div>
-    </div>
 
-    <div class="overlay" id="selectStaffModal" onclick="if(event.target===this) closeSelectModal()">
-        <div class="sheet">
-            <h3>Add to Today's List</h3>
-            <div style="font-size:0.8rem; color:#666; margin-bottom:15px;">Tap a name to add them to the attendance list.</div>
-            <div id="selectStaffList"></div>
-            <button class="action-btn" onclick="closeSelectModal()" style="background:#f0f2f5; color:#333; margin-top:15px;">Cancel</button>
+        <div id="view-profile" class="view-section">
+            <div class="profile-container">
+                <div class="setting-card">
+                    <div class="setting-item">
+                        <div class="setting-label"><i class="fas fa-briefcase"></i> Business Name</div>
+                        <input type="text" id="bizNameInput" class="pb-input" style="width:150px; padding:8px;" onblur="saveProfile()">
+                    </div>
+                </div>
+
+                <div class="setting-card">
+                    <div class="setting-item">
+                        <div class="setting-label"><i class="fas fa-moon"></i> Dark Mode</div>
+                        <label class="switch">
+                            <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-label"><i class="fas fa-clock"></i> Default Shift Hours</div>
+                        <input type="number" id="defaultShiftInput" class="pb-input" style="width:60px; padding:8px;" value="9" onblur="saveProfile()">
+                    </div>
+                </div>
+                
+                <div class="setting-card">
+                    <div class="setting-item">
+                        <div class="setting-label"><i class="fas fa-coins"></i> Currency / Symbol</div>
+                        <input type="text" id="currencyInput" class="pb-input" style="width:60px; padding:8px;" value="$" placeholder="$" onblur="saveProfile()">
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-label"><i class="fas fa-tag"></i> Hourly Rate (Default)</div>
+                        <input type="number" id="hourlyRateInput" class="pb-input" style="width:60px; padding:8px;" value="0" onblur="saveProfile()">
+                    </div>
+                </div>
+
+                <div class="setting-card">
+                    <div class="setting-item">
+                        <div class="setting-label"><i class="fas fa-lock"></i> Change Password</div>
+                        <input type="password" id="passwordInput" class="pb-input" style="width:100px; padding:8px;" placeholder="****" onblur="saveProfile()">
+                    </div>
+                </div>
+
+                <div class="setting-card">
+                    <div class="setting-item" onclick="exportToExcel()" style="cursor:pointer;">
+                        <div class="setting-label"><i class="fas fa-file-excel" style="color:var(--green)"></i> Export to Excel (CSV)</div>
+                        <i class="fas fa-chevron-right" style="color:#ccc;"></i>
+                    </div>
+                    <div class="setting-item" onclick="resetAllData()" style="cursor:pointer; color:var(--red);">
+                        <div class="setting-label" style="color:var(--red);"><i class="fas fa-trash-alt" style="color:var(--red);"></i> Reset All Data</div>
+                    </div>
+                </div>
+
+                <div class="made-by">
+                    <img src="https://via.placeholder.com/50?text=PC" alt="Logo">
+                    <p>Designed for Patel Craftex</p>
+                    <p style="margin-top:5px; font-size:0.7rem;">Made by Dhruv Patel</p>
+                </div>
+            </div>
         </div>
-    </div>
 
-</div>
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="switchTab('attendance', this)">
+                <i class="fas fa-users"></i><span>Attendance</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('history', this)">
+                <i class="fas fa-history"></i><span>History</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('staff', this)">
+                <i class="fas fa-user-cog"></i><span>Staff</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('profile', this)">
+                <i class="fas fa-store"></i><span>Profile</span>
+            </div>
+        </div>
+
+        <div class="overlay" id="actionModal" onclick="if(event.target===this) closeModal()">
+            <div class="sheet">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 id="modalName" style="margin:0; color:var(--text-main);">Name</h3>
+                    <i class="fas fa-trash-alt btn-trash" onclick="removeStaffFromDay()" title="Remove from Today"></i>
+                </div>
+                
+                <div class="timer-grid">
+                    <div class="timer-box">
+                        <span class="t-val" id="modalWorkTimer">00:00:00</span>
+                        <span class="t-lbl">Work Time</span>
+                    </div>
+                    <div class="timer-box">
+                        <span class="t-val" id="modalBreakTimer" style="color:var(--orange)">00:00:00</span>
+                        <span class="t-lbl">Break Time</span>
+                    </div>
+                    <div class="timer-box" style="background:#eef2ff; border-color:#dbeafe;">
+                        <span class="t-val" id="modalTotalTimer" style="color:var(--pb-blue)">00:00:00</span>
+                        <span class="t-lbl">Shift Duration</span>
+                    </div>
+                </div>
+
+                <div id="modalActions"></div>
+
+                <div id="modalManualSection" class="manual-box">
+                    <div style="font-size:0.8rem; color:var(--text-sub); margin-bottom:10px; font-weight:bold; text-transform:uppercase;">Attendance Editor</div>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <select id="editParamSelect" class="pb-input" style="background:var(--bg); padding:10px; font-weight:500;">
+                            <option value="fix_in">Update Punch In Time</option>
+                            <option value="fix_out">Update Punch Out Time</option>
+                            <option value="retro_break_start">Started Break at...</option>
+                            <option value="retro_break_end">Ended Break at...</option>
+                        </select>
+                        <div style="display:flex; gap:5px;">
+                            <input type="time" id="manualSingleTime" class="pb-input" style="padding:10px; background:var(--bg);">
+                            <button class="pb-btn" onclick="submitSmartUpdate()" style="width:80px;">UPDATE</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="action-btn" onclick="closeModal()" style="background:var(--bg); color:var(--text-main); margin-top:10px;">Close</button>
+            </div>
+        </div>
+
+        <div class="overlay" id="selectStaffModal" onclick="if(event.target===this) closeSelectModal()">
+            <div class="sheet">
+                <h3 style="color:var(--text-main);">Add to Today's List</h3>
+                <div style="font-size:0.8rem; color:var(--text-sub); margin-bottom:15px;">Tap a name to add them to the attendance list.</div>
+                <div id="selectStaffList"></div>
+                <button class="action-btn" onclick="closeSelectModal()" style="background:var(--bg); color:var(--text-main); margin-top:15px;">Cancel</button>
+            </div>
+        </div>
+    </div> </div>
 
 <script>
+    // --- UTILS ---
+    function showToast(msg, type='info') {
+        const c = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.innerText = msg;
+        c.appendChild(t);
+        void t.offsetWidth; 
+        t.classList.add('show');
+        setTimeout(() => {
+            t.classList.remove('show');
+            setTimeout(() => { if(t.parentNode) t.parentNode.removeChild(t); }, 300);
+        }, 3000);
+    }
+
+    let confirmCallback = null;
+    function showConfirm(msg, callback, isDelete=false) {
+        document.getElementById('confirmMsg').textContent = msg;
+        document.getElementById('confirmTitle').textContent = isDelete ? 'Delete?' : 'Confirm';
+        const btn = document.getElementById('confirmBtnYes');
+        btn.className = isDelete ? 'c-btn c-delete' : 'c-btn c-confirm';
+        btn.textContent = isDelete ? 'Delete' : 'Confirm';
+        confirmCallback = callback;
+        document.getElementById('customConfirm').style.display = 'flex';
+    }
+    function closeConfirm() { document.getElementById('customConfirm').style.display = 'none'; confirmCallback = null; }
+    document.getElementById('confirmBtnYes').onclick = function() { if(confirmCallback) confirmCallback(); closeConfirm(); };
+
+    // --- DATE FIX: GET LOCAL DATE STRING CORRECTLY ---
+    function getLocalDateString() {
+        const d = new Date();
+        return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    }
+
     // --- DATA ---
     let db_staff = JSON.parse(localStorage.getItem('pb_db_staff')) || []; 
     let db_live = JSON.parse(localStorage.getItem('pb_live_data')) || {};
     let db_history = JSON.parse(localStorage.getItem('pb_history_data')) || {};
     let db_removed = JSON.parse(localStorage.getItem('pb_removed_data')) || {};
     let db_bizName = localStorage.getItem('pb_bizName') || 'My Business';
+    let db_prefs = JSON.parse(localStorage.getItem('pb_prefs')) || { dark: false };
+    
+    // Settings
+    let db_currency = localStorage.getItem('pb_currency') || '$';
+    let db_hourlyRate = parseFloat(localStorage.getItem('pb_hourlyRate')) || 0;
+    let db_password = localStorage.getItem('pb_password') || '1234';
 
     let appState = {
-        todayStr: new Date().toISOString().split('T')[0],
-        selectedDate: new Date().toISOString().split('T')[0],
-        activeStaffId: null
+        todayStr: getLocalDateString(),
+        selectedDate: getLocalDateString(),
+        activeStaffId: null,
+        historyMode: 'daily', // 'daily' or 'staff'
+        reportStaff: null
     };
+
+    // --- LOGIN LOGIC ---
+    // Handle Enter key in login
+    document.getElementById('loginPassInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') { checkLogin(); }
+    });
+
+    function checkLogin() {
+        const input = document.getElementById('loginPassInput').value;
+        if(input === db_password) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'flex';
+        } else {
+            showToast("Wrong Password", "error");
+            document.getElementById('loginPassInput').value = '';
+        }
+    }
 
     // --- INIT ---
     document.getElementById('displayBizName').textContent = db_bizName;
     document.getElementById('bizNameInput').value = db_bizName;
+    document.getElementById('currencyInput').value = db_currency;
+    document.getElementById('hourlyRateInput').value = db_hourlyRate;
+    // Don't prefill password input in settings for security, just let them overwrite it if needed
+
+    if(db_prefs.dark) {
+        document.body.classList.add('dark-mode');
+        document.getElementById('darkModeToggle').checked = true;
+    }
     renderDateStrip();
     renderAttendanceView();
     renderStaffManager();
     setInterval(updateHeartbeat, 1000);
 
-    // --- NAVIGATION ---
+    // --- LOGIC ---
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        db_prefs.dark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('pb_prefs', JSON.stringify(db_prefs));
+    }
+
+    // EXPORT LOGIC (CSV for Excel)
+    function exportToExcel() {
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Date,Staff Name,Check In,Check Out,Break Duration,Work Duration,Est. Pay (" + db_currency + ")\r\n";
+
+        const dates = Object.keys(db_history).sort().reverse();
+        dates.forEach(date => {
+            const dayData = db_history[date];
+            Object.keys(dayData).forEach(name => {
+                const r = dayData[name];
+                const inTime = r.startTime ? new Date(r.startTime).toLocaleTimeString() : '--:--';
+                const outTime = r.endTime ? new Date(r.endTime).toLocaleTimeString() : '--:--';
+                
+                const breakStr = formatTime(r.breakMs);
+                const workStr = formatTime(r.workMs);
+                
+                const hours = r.workMs / 3600000;
+                const pay = (hours * db_hourlyRate).toFixed(2);
+
+                const row = `${date},${name},${inTime},${outTime},${breakStr},${workStr},${pay}`;
+                csvContent += row + "\r\n";
+            });
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `attendance_export_${appState.todayStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("Excel (CSV) Downloaded", "success");
+    }
+
     function switchTab(tabName, el) {
         document.querySelectorAll('.view-section').forEach(d => d.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(d => d.classList.remove('active'));
         document.getElementById('view-' + tabName).classList.add('active');
         el.classList.add('active');
         document.getElementById('statsRow').style.display = (tabName === 'attendance') ? 'flex' : 'none';
-
         if(tabName === 'history') renderHistoryView();
-        if(tabName === 'staff') renderStaffManager();
-        if(tabName === 'attendance') renderAttendanceView();
     }
 
-    // --- DATE PICKER LOGIC ---
     function pickDate(val) {
         if(!val) return;
         appState.selectedDate = val;
@@ -282,41 +563,33 @@
         const strip = document.getElementById('dateStrip');
         strip.innerHTML = '';
         const centerDate = new Date(appState.selectedDate);
-        
-        // Show 2 days before and 2 days after selected date
         for(let i=-2; i<=2; i++) {
             const d = new Date(centerDate);
             d.setDate(centerDate.getDate() + i);
-            const dateKey = d.toISOString().split('T')[0];
+            const dateKey = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
             const isToday = (dateKey === appState.todayStr);
             const isActive = (dateKey === appState.selectedDate);
-            
             const el = document.createElement('div');
             el.className = `date-item ${isActive ? 'active' : ''}`;
             el.onclick = () => { appState.selectedDate = dateKey; renderDateStrip(); renderAttendanceView(); };
-            
             const dayName = isToday ? 'TODAY' : d.toLocaleDateString('en-US',{weekday:'short'});
             el.innerHTML = `<span class="date-day">${dayName}</span><span class="date-num">${d.getDate()}</span>`;
             strip.appendChild(el);
         }
     }
 
-    // --- RENDERERS ---
     function renderAttendanceView() {
         const container = document.getElementById('attendanceContainer');
         container.innerHTML = '';
         const isLive = (appState.selectedDate === appState.todayStr);
         const isFuture = (appState.selectedDate > appState.todayStr);
         
-        // 1. Get Eligible Staff (Joined <= Selected Date)
         let activeStaff = db_staff.filter(s => s.joined <= appState.selectedDate);
-        
-        // 2. Hide staff who are in the REMOVED list for this day
         const removedForDay = db_removed[appState.selectedDate] || [];
         activeStaff = activeStaff.filter(s => !removedForDay.includes(s.name));
 
         if(activeStaff.length === 0) {
-            container.innerHTML = `<div style="text-align:center; padding:40px; color:#999; font-size:0.9rem;">No staff visible.<br>Use <b>+</b> to add staff.</div>`;
+            container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-sub); font-size:0.9rem;">No staff visible.<br>Use <b>+</b> to add staff.</div>`;
             updateStats(0,0,0);
             return;
         }
@@ -327,39 +600,24 @@
             const name = s.name;
             let status = 'idle', wMs = 0, bMs = 0, label = 'Mark', pillClass = 'pill-idle';
 
-            if(isFuture) {
-                // FUTURE DATE logic
-                label = 'Not Marked';
-                pillClass = 'pill-idle';
-                // Don't increment stats
-            } 
+            if(isFuture) { label = 'Not Marked'; pillClass = 'pill-idle'; } 
             else if(isLive) {
-                // TODAY logic
                 if(!db_live[name]) db_live[name] = { state: 'idle', lastAction: 0, workMs: 0, breakMs: 0, startTime: null };
                 const l = db_live[name];
                 status = l.state;
                 const t = calcTimes(l);
                 wMs = t.w; bMs = t.b;
-
                 if(status === 'in') { label = 'Punched In'; pillClass = 'pill-in'; p++; }
                 else if(status === 'break') { label = 'On Break'; pillClass = 'pill-break'; p++; }
                 else if(status === 'out') { label = 'Present'; pillClass = 'pill-out'; p++; }
                 else if(status === 'absent') { label = 'Absent'; pillClass = 'pill-absent'; a++; }
                 else { a++; }
-            } 
-            else {
-                // PAST logic
+            } else {
                 const h = db_history[appState.selectedDate];
                 if(h && h[name]) { 
-                    status = 'done'; 
-                    wMs = h[name].workMs || 0; 
-                    bMs = h[name].breakMs || 0;
-                    label = 'Present'; 
-                    pillClass = 'pill-in'; 
-                    p++; 
-                } else { 
-                    label = 'Absent'; pillClass = 'pill-out'; a++; 
-                }
+                    status = 'done'; wMs = h[name].workMs || 0; bMs = h[name].breakMs || 0;
+                    label = 'Present'; pillClass = 'pill-in'; p++; 
+                } else { label = 'Absent'; pillClass = 'pill-out'; a++; }
             }
 
             totalH += wMs;
@@ -371,7 +629,7 @@
                     <div class="card-row-top">
                         <div style="display:flex; align-items:center;">
                             <div class="avatar">${name[0]}</div>
-                            <div style="font-weight:600; color:#333;">${name}</div>
+                            <div style="font-weight:600; color:var(--text-main);">${name}</div>
                         </div>
                         <div class="pill ${pillClass}">${label}</div>
                     </div>
@@ -399,7 +657,7 @@
         const container = document.getElementById('manageStaffContainer');
         container.innerHTML = '';
         if(db_staff.length === 0) {
-            container.innerHTML = `<div style="padding:15px; color:#999; text-align:center;">List is empty.</div>`;
+            container.innerHTML = `<div style="padding:15px; color:var(--text-sub); text-align:center;">List is empty.</div>`;
             return;
         }
         db_staff.forEach(s => {
@@ -409,8 +667,8 @@
                     <div style="display:flex; align-items:center; gap:10px;">
                         <div class="avatar" style="width:32px; height:32px; font-size:0.8rem;">${s.name[0]}</div>
                         <div>
-                            <div style="font-weight:600;">${s.name}</div>
-                            <div style="font-size:0.7rem; color:#666;">Joined: ${joinDate}</div>
+                            <div style="font-weight:600; color:var(--text-main);">${s.name}</div>
+                            <div style="font-size:0.7rem; color:var(--text-sub);">Joined: ${joinDate}</div>
                         </div>
                     </div>
                     <i class="fas fa-trash-alt btn-trash" onclick="deletePermanent('${s.name}')"></i>
@@ -419,99 +677,24 @@
         });
     }
 
-    // --- ACTIONS ---
-    function openSelectStaffModal() {
-        const container = document.getElementById('selectStaffList');
-        container.innerHTML = '';
-        
-        // Find staff who are eligible (Joined <= selectedDate) AND are currently in the REMOVED list
-        const eligible = db_staff.filter(s => s.joined <= appState.selectedDate);
-        const removedForDay = db_removed[appState.selectedDate] || [];
-        
-        // Shows only those who are hidden (removed)
-        const hidden = eligible.filter(s => removedForDay.includes(s.name));
-
-        if(hidden.length === 0) {
-             container.innerHTML = `<div style="text-align:center; padding:20px;">All eligible staff are already added.</div>`;
-        } else {
-            hidden.forEach(s => {
-                container.innerHTML += `
-                    <div class="select-item" onclick="addStaffToDay('${s.name}')">
-                        <div class="avatar" style="width:30px; height:30px; font-size:0.8rem;">${s.name[0]}</div>
-                        <span style="font-weight:600;">${s.name}</span>
-                        <span style="margin-left:auto; color:var(--pb-blue); font-size:0.8rem; font-weight:bold;">ADD +</span>
-                    </div>
-                `;
-            });
-        }
-        document.getElementById('selectStaffModal').style.display = 'flex';
-    }
-
-    function addStaffToDay(name) {
-        let list = db_removed[appState.selectedDate] || [];
-        // Remove them from the "Removed" list -> Makes them visible
-        list = list.filter(n => n !== name);
-        db_removed[appState.selectedDate] = list;
-        localStorage.setItem('pb_removed_data', JSON.stringify(db_removed));
-        closeSelectModal();
-        renderAttendanceView();
-    }
-    function closeSelectModal() { document.getElementById('selectStaffModal').style.display = 'none'; }
-
     function addNewStaff() {
         const input = document.getElementById('newStaffInput');
         const name = input.value.trim();
         if(!name) return;
-        
-        // 1. Add to Master DB
         db_staff.push({ name: name, joined: appState.todayStr });
         localStorage.setItem('pb_db_staff', JSON.stringify(db_staff));
-        
-        // 2. Hide them from TODAY's view immediately.
+        // Hide immediately
         if(!db_removed[appState.todayStr]) db_removed[appState.todayStr] = [];
         db_removed[appState.todayStr].push(name);
         localStorage.setItem('pb_removed_data', JSON.stringify(db_removed));
-
         input.value = '';
         renderStaffManager();
         renderAttendanceView();
-        alert("Staff Saved! Go to Attendance and tap + to add them to the list.");
-    }
-
-    function deletePermanent(name) {
-        if(!confirm(`Delete ${name} permanently?`)) return;
-        db_staff = db_staff.filter(s => s.name !== name);
-        delete db_live[name]; 
-        localStorage.setItem('pb_db_staff', JSON.stringify(db_staff));
-        localStorage.setItem('pb_live_data', JSON.stringify(db_live));
-        renderStaffManager();
-        renderAttendanceView();
-    }
-
-    function removeStaffFromDay() {
-        if(!confirm("Remove from this day's view?")) return;
-        const name = appState.activeStaffId;
-        if(!db_removed[appState.selectedDate]) db_removed[appState.selectedDate] = [];
-        db_removed[appState.selectedDate].push(name);
-        localStorage.setItem('pb_removed_data', JSON.stringify(db_removed));
-        
-        // Clear live data if removing from today
-        if(appState.selectedDate === appState.todayStr) {
-            db_live[name] = { state: 'idle', lastAction: 0, workMs: 0, breakMs: 0, startTime: null };
-            localStorage.setItem('pb_live_data', JSON.stringify(db_live));
-        }
-        
-        closeModal();
-        renderAttendanceView();
+        showToast("Staff Saved! Use + to add to daily list.", "success");
     }
 
     function openActionModal(name) {
-        // Prevent editing FUTURE dates
-        if(appState.selectedDate > appState.todayStr) {
-            alert("Future dates are read-only.");
-            return;
-        }
-        
+        if(appState.selectedDate > appState.todayStr) { showToast("Future dates are read-only", "error"); return; }
         appState.activeStaffId = name;
         document.getElementById('modalName').textContent = name;
         document.getElementById('actionModal').style.display = 'flex';
@@ -521,49 +704,27 @@
 
     function updateActionUI() {
         const name = appState.activeStaffId;
+        const l = db_live[name];
         const container = document.getElementById('modalActions');
         const isLive = (appState.selectedDate === appState.todayStr);
-        
-        // Calculate times based on whether it's Live (Today) or History (Past)
         let w = 0, b = 0;
-        
         if(isLive) {
-            const l = db_live[name] || { workMs:0, breakMs:0 };
-            const t = calcTimes(l);
-            w = t.w; b = t.b;
+            const t = calcTimes(l); w = t.w; b = t.b;
         } else {
             const h = db_history[appState.selectedDate];
-            if(h && h[name]) {
-                w = h[name].workMs || 0;
-                b = h[name].breakMs || 0;
-            }
+            if(h && h[name]) { w = h[name].workMs || 0; b = h[name].breakMs || 0; }
         }
-
         document.getElementById('modalWorkTimer').textContent = formatTime(w);
         document.getElementById('modalBreakTimer').textContent = formatTime(b);
         document.getElementById('modalTotalTimer').textContent = formatTime(w);
-
+        const manualSection = document.getElementById('modalManualSection');
+        manualSection.style.display = isLive ? 'block' : 'none';
         container.innerHTML = '';
         if(isLive) {
-            // Live Logic
-            const l = db_live[name];
             if(l.state === 'idle') {
-                container.innerHTML = `
-                    <button class="action-btn" style="background:var(--green); color:white" onclick="changeState('in')"><i class="fas fa-fingerprint"></i> Punch In Now</button>
-                    <div style="background:#f9f9f9; padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid #eee;">
-                        <div style="font-size:0.8rem; color:#666; margin-bottom:5px;">Or Manual Entry:</div>
-                        <div style="display:flex; gap:5px;">
-                            <input type="time" id="manualTimeInput" class="pb-input" style="padding:10px; background:white;">
-                            <button class="pb-btn" onclick="submitManualEntry()" style="padding:0 15px;">GO</button>
-                        </div>
-                    </div>
-                    <button class="action-btn btn-absent" onclick="changeState('absent')"><i class="fas fa-user-times"></i> Mark Absent</button>
-                `;
+                container.innerHTML = `<button class="action-btn" style="background:var(--green); color:white" onclick="changeState('in')"><i class="fas fa-fingerprint"></i> Punch In Now</button><button class="action-btn btn-absent" onclick="changeState('absent')"><i class="fas fa-user-times"></i> Mark Absent</button>`;
             } else if(l.state === 'in') {
-                container.innerHTML = `
-                    <button class="action-btn" style="background:var(--orange); color:white" onclick="changeState('break')"><i class="fas fa-coffee"></i> Start Break</button>
-                    <button class="action-btn" style="background:var(--red); color:white" onclick="changeState('out')"><i class="fas fa-sign-out-alt"></i> Punch Out</button>
-                `;
+                container.innerHTML = `<button class="action-btn" style="background:var(--orange); color:white" onclick="changeState('break')"><i class="fas fa-coffee"></i> Start Break</button><button class="action-btn" style="background:var(--red); color:white" onclick="changeState('out')"><i class="fas fa-sign-out-alt"></i> Punch Out</button>`;
             } else if(l.state === 'break') {
                 container.innerHTML = `<button class="action-btn" style="background:var(--pb-blue); color:white" onclick="changeState('in')"><i class="fas fa-play"></i> End Break</button>`;
             } else if(l.state === 'out') {
@@ -572,90 +733,118 @@
                 container.innerHTML = `<button class="action-btn" onclick="changeState('idle')" style="background:#eee; color:#333">Undo Absent</button>`;
             }
         } else {
-            // Past Logic
-             container.innerHTML = `
-                <div style="text-align:center; padding:10px; color:#666; font-size:0.9rem;">Historical Record</div>
-                <button class="action-btn" onclick="removeStaffFromDay()" style="background:#fff; border:1px solid #ddd; color:#666; margin-top:10px;">
-                    <i class="fas fa-eye-slash"></i> Hide from this Date
-                </button>
-            `;
+             container.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-sub); font-size:0.9rem;">Historical Record</div><button class="action-btn" onclick="removeStaffFromDay()" style="background:var(--bg); border:1px solid var(--border); color:var(--text-sub); margin-top:10px;"><i class="fas fa-eye-slash"></i> Hide from this Date</button>`;
         }
     }
 
-    function submitManualEntry() {
-        const timeVal = document.getElementById('manualTimeInput').value;
-        if(!timeVal) return alert("Please select a time first.");
-        const [h, m] = timeVal.split(':');
-        const now = new Date();
-        const entryTime = new Date();
-        entryTime.setHours(h, m, 0, 0);
-        if(entryTime > now) { alert("Cannot start in the future!"); return; }
+    // --- SMART LOGIC ---
+    function submitSmartUpdate() {
+        const type = document.getElementById('editParamSelect').value;
+        const timeVal = document.getElementById('manualSingleTime').value;
+        if(!timeVal) return showToast("Please select a time.", "error");
+        
+        const entryTime = parseManualTime(timeVal);
+        const entryMs = entryTime.getTime();
         const name = appState.activeStaffId;
         const l = db_live[name];
-        l.startTime = entryTime.getTime();
-        l.lastAction = now.getTime();
-        l.workMs = l.lastAction - l.startTime;
-        l.state = 'in';
+        const now = new Date();
+
+        if(type === 'fix_in') {
+            l.startTime = entryMs;
+            if(l.state === 'idle' || l.state === 'absent') {
+                l.state = 'in'; 
+                l.lastAction = entryMs; 
+                l.workMs = 0; 
+                l.breakMs = 0;
+            } 
+            else {
+                l.workMs = (l.lastAction - l.startTime) - l.breakMs;
+                if(l.workMs < 0) l.workMs = 0; 
+            }
+            showToast("Start Time Updated", "success");
+        } 
+        else if(type === 'fix_out') {
+            l.lastAction = entryMs;
+            l.state = 'out';
+            if(!l.startTime) l.startTime = entryMs;
+            
+            l.workMs = (l.lastAction - l.startTime) - l.breakMs;
+            if(l.workMs < 0) l.workMs = 0;
+
+            if(!db_history[appState.todayStr]) db_history[appState.todayStr] = {};
+            db_history[appState.todayStr][name] = { workMs: l.workMs, breakMs: l.breakMs, startTime: l.startTime, endTime: l.lastAction };
+            localStorage.setItem('pb_history_data', JSON.stringify(db_history));
+            showToast("Shift Ended", "success");
+        }
+        else if(type === 'retro_break_start') {
+            const addedWork = entryMs - l.lastAction;
+            if(l.state === 'in' && addedWork > 0) {
+                 l.workMs += addedWork;
+            }
+            l.lastAction = entryMs;
+            l.state = 'break';
+            showToast("Set to Break", "success");
+        }
+        else if(type === 'retro_break_end') {
+            const addedBreak = entryMs - l.lastAction;
+            if(l.state === 'break' && addedBreak > 0) {
+                l.breakMs += addedBreak;
+            }
+            l.lastAction = entryMs;
+            l.state = 'in';
+            showToast("Set to Work", "success");
+        }
         localStorage.setItem('pb_live_data', JSON.stringify(db_live));
         updateActionUI();
         renderAttendanceView();
+    }
+
+    function parseManualTime(timeStr) {
+        const [h, m] = timeStr.split(':');
+        const now = new Date();
+        const inputDate = new Date();
+        inputDate.setHours(h, m, 0, 0);
+        if (inputDate > now && (inputDate.getTime() - now.getTime() > 43200000)) { 
+             inputDate.setDate(inputDate.getDate() - 1); 
+        }
+        return inputDate;
     }
 
     function changeState(newState) {
-        const name = appState.activeStaffId;
-        const now = Date.now();
-        const l = db_live[name];
+        const name = appState.activeStaffId; const now = Date.now(); const l = db_live[name];
         if(l.state === 'idle' && newState === 'in') l.startTime = now;
         if(l.state === 'in') l.workMs += (now - l.lastAction);
         if(l.state === 'break') l.breakMs += (now - l.lastAction);
-        l.state = newState;
-        l.lastAction = now;
+        l.state = newState; l.lastAction = now;
         if(newState === 'out') {
             if(!db_history[appState.todayStr]) db_history[appState.todayStr] = {};
-            db_history[appState.todayStr][name] = { 
-                workMs: l.workMs,
-                breakMs: l.breakMs,
-                startTime: l.startTime,
-                endTime: now
-            };
+            db_history[appState.todayStr][name] = { workMs: l.workMs, breakMs: l.breakMs, startTime: l.startTime, endTime: now };
             localStorage.setItem('pb_history_data', JSON.stringify(db_history));
         }
         localStorage.setItem('pb_live_data', JSON.stringify(db_live));
-        updateActionUI();
-        renderAttendanceView();
+        updateActionUI(); renderAttendanceView();
     }
-
+    
     function calcTimes(l) {
-        let w = l.workMs || 0;
-        let b = l.breakMs || 0;
-        const now = Date.now();
+        let w = l.workMs || 0; let b = l.breakMs || 0; const now = Date.now();
         if(l.state === 'in') w += (now - l.lastAction);
         if(l.state === 'break') b += (now - l.lastAction);
         return { w, b };
     }
-
+    
     function updateHeartbeat() {
         if(appState.selectedDate !== appState.todayStr) return;
-        let totalH = 0;
-        const removedForDay = db_removed[appState.selectedDate] || [];
+        let totalH = 0; const removedForDay = db_removed[appState.selectedDate] || [];
         const activeStaff = db_staff.filter(s => s.joined <= appState.selectedDate && !removedForDay.includes(s.name));
-
         activeStaff.forEach(s => {
-            const name = s.name;
-            const l = db_live[name];
-            if(!l) return;
-            const t = calcTimes(l);
-            totalH += t.w;
-            
-            const safeName = name.replace(/\s/g, '_');
-            const wEl = document.getElementById(`w-${safeName}`);
-            const bEl = document.getElementById(`b-${safeName}`);
-            const tEl = document.getElementById(`t-${safeName}`);
-            
-            if(wEl) wEl.textContent = formatTime(t.w);
-            if(bEl) bEl.textContent = formatTime(t.b);
-            if(tEl) tEl.textContent = formatTime(t.w);
-
+            const name = s.name; const l = db_live[name]; if(!l) return;
+            const t = calcTimes(l); totalH += t.w;
+            const wEl = document.getElementById(`w-${name.replace(/\s/g, '_')}`);
+            if(wEl) {
+                wEl.textContent = formatTime(t.w);
+                document.getElementById(`b-${name.replace(/\s/g, '_')}`).textContent = formatTime(t.b);
+                document.getElementById(`t-${name.replace(/\s/g, '_')}`).textContent = formatTime(t.w);
+            }
             if(appState.activeStaffId === name && document.getElementById('actionModal').style.display === 'flex') {
                 document.getElementById('modalWorkTimer').textContent = formatTime(t.w);
                 document.getElementById('modalBreakTimer').textContent = formatTime(t.b);
@@ -664,48 +853,178 @@
         });
         document.getElementById('statH').textContent = Math.floor(totalH/3600000) + 'h';
     }
-
+    
     function updateStats(p, a, h) {
-        document.getElementById('statP').textContent = p;
-        document.getElementById('statA').textContent = a;
+        document.getElementById('statP').textContent = p; document.getElementById('statA').textContent = a;
         document.getElementById('statH').textContent = Math.floor(h/3600000) + 'h';
     }
-
     function formatTime(ms) {
-        const totalSec = Math.floor(ms / 1000);
-        const h = Math.floor(totalSec / 3600);
-        const m = Math.floor((totalSec % 3600) / 60);
-        const s = totalSec % 60;
+        if(ms < 0) ms = 0;
+        const totalSec = Math.floor(ms / 1000); const h = Math.floor(totalSec / 3600);
+        const m = Math.floor((totalSec % 3600) / 60); const s = totalSec % 60;
         return `${h}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
     }
-
+    function formatClockTime(ts) { if(!ts) return '--:--'; return new Date(ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }
+    
     function saveProfile() {
         const n = document.getElementById('bizNameInput').value;
-        db_bizName = n;
+        const c = document.getElementById('currencyInput').value;
+        const h = document.getElementById('hourlyRateInput').value;
+        const p = document.getElementById('passwordInput').value;
+        
+        db_bizName = n; 
+        db_currency = c;
+        db_hourlyRate = parseFloat(h) || 0;
+
         localStorage.setItem('pb_bizName', n);
-        document.getElementById('displayBizName').textContent = n;
-        alert("Saved!");
+        localStorage.setItem('pb_currency', c);
+        localStorage.setItem('pb_hourlyRate', h);
+
+        if(p && p.trim() !== '') {
+            db_password = p;
+            localStorage.setItem('pb_password', p);
+            document.getElementById('passwordInput').value = '';
+            showToast("Password Updated", "success");
+        }
+
+        document.getElementById('displayBizName').textContent = n; 
+        showToast("Saved", "success");
     }
 
     function resetAllData() {
-        if(confirm("Delete ALL data (Staff & History)?")) {
-            localStorage.clear();
-            location.reload();
+        showConfirm("Delete ALL data?", () => { localStorage.clear(); location.reload(); }, true);
+    }
+    function deletePermanent(name) {
+        showConfirm(`Delete ${name}?`, () => {
+            db_staff = db_staff.filter(s => s.name !== name); delete db_live[name];
+            localStorage.setItem('pb_db_staff', JSON.stringify(db_staff)); localStorage.setItem('pb_live_data', JSON.stringify(db_live));
+            renderStaffManager(); renderAttendanceView(); showToast("Deleted", "error");
+        }, true);
+    }
+    function removeStaffFromDay() {
+        showConfirm("Remove from view?", () => {
+            const name = appState.activeStaffId;
+            if(!db_removed[appState.selectedDate]) db_removed[appState.selectedDate] = [];
+            db_removed[appState.selectedDate].push(name);
+            localStorage.setItem('pb_removed_data', JSON.stringify(db_removed));
+            if(appState.selectedDate === appState.todayStr) {
+                db_live[name] = { state: 'idle', lastAction: 0, workMs: 0, breakMs: 0, startTime: null };
+                localStorage.setItem('pb_live_data', JSON.stringify(db_live));
+            }
+            closeModal(); renderAttendanceView(); showToast("Removed");
+        }, true);
+    }
+    function openSelectStaffModal() {
+        const container = document.getElementById('selectStaffList'); container.innerHTML = '';
+        const eligible = db_staff.filter(s => s.joined <= appState.selectedDate);
+        const removedForDay = db_removed[appState.selectedDate] || [];
+        const hidden = eligible.filter(s => removedForDay.includes(s.name));
+        if(hidden.length === 0) { container.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-sub);">All available staff added.</div>`; }
+        else {
+            hidden.forEach(s => {
+                container.innerHTML += `<div class="select-item" onclick="addStaffToDay('${s.name}')"><div class="avatar">${s.name[0]}</div><span style="font-weight:600; color:var(--text-main);">${s.name}</span><span style="margin-left:auto; color:var(--pb-blue); font-weight:bold; font-size:0.8rem;">ADD +</span></div>`;
+            });
         }
+        document.getElementById('selectStaffModal').style.display = 'flex';
+    }
+    function addStaffToDay(name) {
+        let list = db_removed[appState.selectedDate] || []; list = list.filter(n => n !== name);
+        db_removed[appState.selectedDate] = list; localStorage.setItem('pb_removed_data', JSON.stringify(db_removed));
+        closeSelectModal(); renderAttendanceView();
+    }
+    function closeSelectModal() { document.getElementById('selectStaffModal').style.display = 'none'; }
+
+    // --- HISTORY FEATURE ---
+    function setHistoryMode(mode) {
+        appState.historyMode = mode;
+        document.getElementById('btnHistDaily').className = `history-btn ${mode === 'daily' ? 'active' : ''}`;
+        document.getElementById('btnHistStaff').className = `history-btn ${mode === 'staff' ? 'active' : ''}`;
+        renderHistoryView();
     }
 
     function renderHistoryView() {
-        const c = document.getElementById('historyContainer');
-        c.innerHTML = '';
-        Object.keys(db_history).sort().reverse().forEach(date => {
-            const d = db_history[date];
-            let rows = '';
-            Object.keys(d).forEach(name => {
-                rows += `<div class="h-row"><span class="h-name">${name}</span><span class="h-time">${formatTime(d[name].workMs)}</span></div>`;
+        const c = document.getElementById('historyContainer'); c.innerHTML = '';
+        
+        // MODE 1: DAILY
+        if(appState.historyMode === 'daily') {
+            Object.keys(db_history).sort().reverse().forEach(date => {
+                const d = db_history[date]; let rows = '';
+                Object.keys(d).forEach(name => {
+                    const info = d[name];
+                    rows += `<div class="h-row"><div class="h-main-row"><span class="h-name">${name}</span><span class="h-time">${formatTime(info.workMs)}</span></div><div class="h-details"><div class="h-detail-item"><i class="fas fa-sign-in-alt"></i> ${formatClockTime(info.startTime)}</div><div class="h-detail-item"><i class="fas fa-sign-out-alt"></i> ${formatClockTime(info.endTime)}</div><div class="h-detail-item"><i class="fas fa-mug-hot"></i> ${formatTime(info.breakMs)}</div></div></div>`;
+                });
+                c.innerHTML += `<div class="history-date-block"><div class="h-header"><span>${date}</span><span>${Object.keys(d).length} Present</span></div>${rows}</div>`;
             });
-            c.innerHTML += `<div class="history-date-block"><div class="h-header"><span>${date}</span><span>${Object.keys(d).length} Present</span></div>${rows}</div>`;
-        });
+        } 
+        // MODE 2: STAFF LIST
+        else {
+            db_staff.forEach(s => {
+                 c.innerHTML += `
+                    <div class="history-date-block" onclick="openMonthSelect('${s.name}')" style="cursor:pointer">
+                        <div class="h-header" style="border:none">
+                             <div style="display:flex; align-items:center; gap:10px;">
+                                <div class="avatar" style="width:30px; height:30px; font-size:0.8rem;">${s.name[0]}</div>
+                                <span>${s.name}</span>
+                             </div>
+                             <i class="fas fa-chevron-right" style="color:var(--text-sub)"></i>
+                        </div>
+                    </div>
+                 `;
+            });
+        }
     }
+
+    // --- MONTH SELECT MODAL ---
+    function openMonthSelect(name) {
+        appState.reportStaff = name;
+        document.getElementById('monthSelectTitle').innerText = "Report for " + name;
+        document.getElementById('reportMonthInput').value = new Date().toISOString().slice(0, 7); // yyyy-mm
+        document.getElementById('monthSelectModal').style.display = 'flex';
+    }
+    function closeMonthModal() {
+        document.getElementById('monthSelectModal').style.display = 'none';
+        appState.reportStaff = null;
+    }
+    function generateStaffReport() {
+        const monthVal = document.getElementById('reportMonthInput').value; // yyyy-mm
+        const name = appState.reportStaff;
+        closeMonthModal();
+
+        const c = document.getElementById('historyContainer');
+        c.innerHTML = `<div style="margin-bottom:10px; font-weight:bold; text-align:center;">${name} - ${monthVal}</div><div class="action-btn" onclick="renderHistoryView()" style="background:var(--bg); color:var(--text-sub); width:auto; display:inline-block; padding:5px 15px; margin-bottom:15px; font-size:0.8rem;">&larr; Back to List</div>`;
+        
+        let totalMonthMs = 0;
+        let found = false;
+        
+        Object.keys(db_history).sort().forEach(date => {
+            if(date.startsWith(monthVal)) {
+                const dayData = db_history[date][name];
+                if(dayData) {
+                    found = true;
+                    totalMonthMs += dayData.workMs;
+                    c.innerHTML += `
+                    <div class="history-date-block">
+                        <div class="h-header"><span>${date}</span> <span style="color:var(--pb-blue)">${formatTime(dayData.workMs)}</span></div>
+                        <div class="h-details" style="padding:10px; background:var(--card-bg)">
+                            <div class="h-detail-item">IN: ${formatClockTime(dayData.startTime)}</div>
+                            <div class="h-detail-item">OUT: ${formatClockTime(dayData.endTime)}</div>
+                            <div class="h-detail-item">BREAK: ${formatTime(dayData.breakMs)}</div>
+                        </div>
+                    </div>`;
+                }
+            }
+        });
+
+        if(!found) {
+            c.innerHTML += `<div style="text-align:center; padding:30px; color:var(--text-sub)">No data found for this month.</div>`;
+        } else {
+            c.innerHTML = `<div style="background:var(--pb-blue); color:white; padding:15px; border-radius:8px; margin-bottom:15px; text-align:center;">
+                <div style="font-size:0.8rem; opacity:0.8;">TOTAL HOURS (${monthVal})</div>
+                <div style="font-size:1.5rem; font-weight:bold;">${Math.floor(totalMonthMs/3600000)}h ${Math.floor((totalMonthMs%3600000)/60000)}m</div>
+            </div>` + c.innerHTML;
+        }
+    }
+
 </script>
 </body>
 </html>
