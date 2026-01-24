@@ -138,8 +138,17 @@
         .nav-item.active { color: var(--pb-blue); font-weight: 600; }
         .nav-item i { font-size: 1.3rem; }
 
-        /* FAB */
-        .fab { position: absolute; bottom: 80px; right: 20px; background: var(--pb-blue); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 64, 213, 0.4); z-index: 5; transition: transform 0.2s; }
+        /* FAB - UPDATED to be Translucent */
+        .fab { 
+            position: absolute; bottom: 80px; right: 20px; 
+            background: rgba(16, 64, 213, 0.8); /* Translucent Blue */
+            color: white; width: 56px; height: 56px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 1.8rem; border: none; cursor: pointer; 
+            box-shadow: 0 4px 12px rgba(16, 64, 213, 0.4); 
+            z-index: 5; transition: transform 0.2s; 
+            backdrop-filter: blur(4px); /* Blur effect */
+        }
         .fab:active { transform: scale(0.95); }
 
         /* MODALS & OVERLAYS */
@@ -369,8 +378,8 @@
                     <div style="font-size:0.8rem; color:var(--text-sub); margin-bottom:10px; font-weight:bold; text-transform:uppercase;">Manual Correction</div>
                     <div style="display:flex; flex-direction:column; gap:10px;">
                         <select id="editParamSelect" class="pb-input" style="background:var(--bg); padding:10px; font-weight:500;">
-                            <option value="fix_in">Update Start Time (Current Session)</option>
-                            <option value="fix_out">Force Punch Out at...</option>
+                            <option value="fix_in">Update Start Time</option>
+                            <option value="fix_out">Update End Time</option>
                         </select>
                         <div style="display:flex; gap:5px;">
                             <input type="time" id="manualSingleTime" class="pb-input" style="padding:10px; background:var(--bg);">
@@ -385,8 +394,8 @@
 
         <div class="overlay" id="selectStaffModal" onclick="if(event.target===this) closeSelectModal()">
             <div class="sheet">
-                <h3 style="color:var(--text-main);">Add to Today's List</h3>
-                <div style="font-size:0.8rem; color:var(--text-sub); margin-bottom:15px;">Tap a name to add them to the attendance list.</div>
+                <h3 style="color:var(--text-main);">Add to List</h3>
+                <div style="font-size:0.8rem; color:var(--text-sub); margin-bottom:15px;">Tap a name to add them to the attendance list for this date.</div>
                 <div id="selectStaffList"></div>
                 <button class="action-btn" onclick="closeSelectModal()" style="background:var(--bg); color:var(--text-main); margin-top:15px;">Cancel</button>
             </div>
@@ -560,7 +569,15 @@
         const isLive = (appState.selectedDate === appState.todayStr);
         const isFuture = (appState.selectedDate > appState.todayStr);
         
-        let activeStaff = db_staff.filter(s => s.joined <= appState.selectedDate);
+        // MOD: Show staff if they joined on/before date OR if they have history data for this day (edit case)
+        // OR if strict filter would be too confusing, we rely on the user adding them manually via the + button.
+        // We filter standard logic: joined <= date. 
+        // BUT if history exists for that day, we force include them.
+        let activeStaff = db_staff.filter(s => {
+            const hasHistory = db_history[appState.selectedDate] && db_history[appState.selectedDate][s.name];
+            return (s.joined <= appState.selectedDate) || hasHistory;
+        });
+
         const removedForDay = db_removed[appState.selectedDate] || [];
         activeStaff = activeStaff.filter(s => !removedForDay.includes(s.name));
 
@@ -590,8 +607,13 @@
             } else {
                 const h = db_history[appState.selectedDate];
                 if(h && h[name]) { 
-                    status = 'done'; wMs = h[name].workMs || 0; 
-                    label = 'Present'; pillClass = 'pill-out'; p++; 
+                    if(h[name].status === 'absent') {
+                        status = 'absent'; wMs = 0;
+                        label = 'Absent'; pillClass = 'pill-absent'; a++;
+                    } else {
+                        status = 'done'; wMs = h[name].workMs || 0; 
+                        label = 'Present'; pillClass = 'pill-out'; p++; 
+                    }
                 } else { label = 'Absent'; pillClass = 'pill-out'; a++; }
             }
 
@@ -610,7 +632,7 @@
                     <div class="card-row-bottom">
                         <div class="mini-stat">
                             <span class="mini-label">Status</span>
-                            <span class="mini-val" style="color:${status==='in'?'var(--green)':'var(--text-sub)'}">${status==='in'?'Active Now':'Checked Out'}</span>
+                            <span class="mini-val" style="color:${status==='in'?'var(--green)':'var(--text-sub)'}">${status==='in'?'Active Now':(status==='absent'?'Absent':'Checked Out')}</span>
                         </div>
                         <div class="mini-stat" style="text-align:right;">
                             <span class="mini-label">Total Work Today</span>
@@ -664,6 +686,7 @@
     }
 
     function openActionModal(name) {
+        // ALLOW PREVIOUS DATES
         if(appState.selectedDate > appState.todayStr) { showToast("Future dates are read-only", "error"); return; }
         appState.activeStaffId = name;
         document.getElementById('modalName').textContent = name;
@@ -674,11 +697,15 @@
 
     function updateActionUI() {
         const name = appState.activeStaffId;
-        const l = db_live[name];
         const container = document.getElementById('modalActions');
+        const manualSection = document.getElementById('modalManualSection');
+        
         const isLive = (appState.selectedDate === appState.todayStr);
+        const isPast = (appState.selectedDate < appState.todayStr);
+
         let w = 0;
         if(isLive) {
+            const l = db_live[name];
             w = calcTotalTime(l);
         } else {
             const h = db_history[appState.selectedDate];
@@ -686,11 +713,12 @@
         }
         document.getElementById('modalTotalTimer').textContent = formatTime(w);
         
-        const manualSection = document.getElementById('modalManualSection');
-        manualSection.style.display = isLive ? 'block' : 'none';
+        // ALLOW MANUAL EDIT FOR PAST DATES
+        manualSection.style.display = (isLive || isPast) ? 'block' : 'none';
         container.innerHTML = '';
         
         if(isLive) {
+            const l = db_live[name];
             // New Logic: Just In or Out
             if(l.state === 'out' || l.state === 'idle' || l.state === 'absent') {
                 container.innerHTML = `
@@ -701,6 +729,7 @@
                 container.innerHTML = `<button class="action-btn" style="background:var(--red); color:white" onclick="changeState('out')"><i class="fas fa-sign-out-alt"></i> Punch Out</button>`;
             }
         } else {
+             // For past dates, don't show Punch In/Out buttons, but keep the manual edit box
              container.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-sub); font-size:0.9rem;">Historical Record</div><button class="action-btn" onclick="removeStaffFromDay()" style="background:var(--bg); border:1px solid var(--border); color:var(--text-sub); margin-top:10px;"><i class="fas fa-eye-slash"></i> Hide from this Date</button>`;
         }
     }
@@ -714,6 +743,48 @@
         const entryTime = parseManualTime(timeVal);
         const entryMs = entryTime.getTime();
         const name = appState.activeStaffId;
+        const dateKey = appState.selectedDate;
+
+        // HANDLE PAST DATES
+        if(dateKey < appState.todayStr) {
+            if(!db_history[dateKey]) db_history[dateKey] = {};
+            // Init if missing
+            if(!db_history[dateKey][name]) db_history[dateKey][name] = { workMs: 0, startTime: 0, endTime: 0, status: 'present' };
+            
+            let record = db_history[dateKey][name];
+            // FORCE PRESENT STATUS ON EDIT
+            record.status = 'present';
+            
+            if(type === 'fix_in') {
+                record.startTime = entryMs;
+                // UPDATE LOGIC: Recalc Total Time if End Time exists
+                if(record.endTime) {
+                    if(record.endTime > entryMs) {
+                        record.workMs = record.endTime - entryMs;
+                    } else {
+                        // End Time is before Start Time (invalid), reset work to 0
+                        record.workMs = 0; 
+                    }
+                }
+                showToast("Past Start Time Updated", "success");
+            } 
+            else if(type === 'fix_out') {
+                record.endTime = entryMs;
+                if(record.startTime && entryMs > record.startTime) {
+                    record.workMs = entryMs - record.startTime;
+                } else {
+                    record.workMs = 0;
+                }
+                showToast("Past End Time Updated", "success");
+            }
+            
+            localStorage.setItem('pb_history_data', JSON.stringify(db_history));
+            updateActionUI();
+            renderAttendanceView();
+            return;
+        }
+
+        // HANDLE LIVE DATE (TODAY)
         const l = db_live[name];
         
         if(type === 'fix_in') {
@@ -743,12 +814,15 @@
 
     function parseManualTime(timeStr) {
         const [h, m] = timeStr.split(':');
-        const now = new Date();
-        const inputDate = new Date();
+        // Parse the selected date string (YYYY-MM-DD) to integers
+        const [y, mo, d] = appState.selectedDate.split('-').map(Number);
+
+        const inputDate = new Date(); 
+        // Force the date object to match the selected date exactly
+        // Note: Months in JS Date are 0-indexed (0=Jan, 11=Dec)
+        inputDate.setFullYear(y, mo - 1, d);
         inputDate.setHours(h, m, 0, 0);
-        if (inputDate > now && (inputDate.getTime() - now.getTime() > 43200000)) { 
-             inputDate.setDate(inputDate.getDate() - 1); 
-        }
+        
         return inputDate;
     }
 
@@ -776,6 +850,8 @@
         }
         else if(newState === 'absent') {
             l.state = 'absent';
+            // Save Absent to History Immediately
+            saveHistory(name, 0, null, null, 'absent');
         }
         else if(newState === 'idle') {
             l.state = 'out'; // Reset to out/idle
@@ -785,12 +861,13 @@
         updateActionUI(); renderAttendanceView();
     }
     
-    function saveHistory(name, workMs, start, end) {
+    function saveHistory(name, workMs, start, end, status='present') {
          if(!db_history[appState.todayStr]) db_history[appState.todayStr] = {};
          db_history[appState.todayStr][name] = { 
              workMs: workMs, 
              startTime: start, 
-             endTime: end 
+             endTime: end,
+             status: status
          };
          localStorage.setItem('pb_history_data', JSON.stringify(db_history));
     }
@@ -806,7 +883,11 @@
     function updateHeartbeat() {
         if(appState.selectedDate !== appState.todayStr) return;
         let totalH = 0; const removedForDay = db_removed[appState.selectedDate] || [];
-        const activeStaff = db_staff.filter(s => s.joined <= appState.selectedDate && !removedForDay.includes(s.name));
+        const activeStaff = db_staff.filter(s => {
+             // For Today, we rely on remove list + joined date
+             return s.joined <= appState.selectedDate && !removedForDay.includes(s.name);
+        });
+        
         activeStaff.forEach(s => {
             const name = s.name; const l = db_live[name]; if(!l) return;
             const w = calcTotalTime(l); totalH += w;
@@ -883,20 +964,37 @@
     }
     function openSelectStaffModal() {
         const container = document.getElementById('selectStaffList'); container.innerHTML = '';
-        const eligible = db_staff.filter(s => s.joined <= appState.selectedDate);
+        // MOD: Show ALL staff, even if joined date is later, to allow manual fix for forgotten entries
+        const eligible = db_staff; 
         const removedForDay = db_removed[appState.selectedDate] || [];
-        const hidden = eligible.filter(s => removedForDay.includes(s.name));
-        if(hidden.length === 0) { container.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-sub);">All available staff added.</div>`; }
-        else {
-            hidden.forEach(s => {
-                container.innerHTML += `<div class="select-item" onclick="addStaffToDay('${s.name}')"><div class="avatar">${s.name[0]}</div><span style="font-weight:600; color:var(--text-main);">${s.name}</span><span style="margin-left:auto; color:var(--pb-blue); font-weight:bold; font-size:0.8rem;">ADD +</span></div>`;
-            });
-        }
+        // Only show if they are currently "hidden" (in removed list) OR if we want to add someone who wasn't there
+        // Actually simplest is: Show all staff who are NOT currently in the view
+        // But the view logic filters by removed.
+        // So we show anyone who IS in the removed list OR anyone who is filtered out by date
+        // Simplest: Show everyone. If they are already in view, maybe grey out?
+        // But strict requirement: "add staff to previous day".
+        // Let's just list everyone who is in the "removed" array for this day, AND anyone not visible.
+        
+        eligible.forEach(s => {
+             // If already visible in main view, don't show here?
+             // Main view logic: !removed && (joined <= date || hasHistory)
+             // So here we show: removed || (!joined <= date && !hasHistory)
+             // Simplified: Just show everyone. Clicking them ensures they are in the day.
+             container.innerHTML += `<div class="select-item" onclick="addStaffToDay('${s.name}')"><div class="avatar">${s.name[0]}</div><span style="font-weight:600; color:var(--text-main);">${s.name}</span><span style="margin-left:auto; color:var(--pb-blue); font-weight:bold; font-size:0.8rem;">ADD +</span></div>`;
+        });
+        
         document.getElementById('selectStaffModal').style.display = 'flex';
     }
     function addStaffToDay(name) {
         let list = db_removed[appState.selectedDate] || []; list = list.filter(n => n !== name);
         db_removed[appState.selectedDate] = list; localStorage.setItem('pb_removed_data', JSON.stringify(db_removed));
+        // Force a history entry so renderAttendanceView picks them up even if joined date is wrong
+        if(!db_history[appState.selectedDate]) db_history[appState.selectedDate] = {};
+        if(!db_history[appState.selectedDate][name]) {
+             db_history[appState.selectedDate][name] = { workMs: 0, startTime: 0, endTime: 0, status: 'absent' };
+             localStorage.setItem('pb_history_data', JSON.stringify(db_history));
+        }
+        
         closeSelectModal(); renderAttendanceView();
     }
     function closeSelectModal() { document.getElementById('selectStaffModal').style.display = 'none'; }
@@ -968,15 +1066,23 @@
                 const dayData = db_history[date][name];
                 if(dayData) {
                     found = true;
-                    totalMonthMs += dayData.workMs;
-                    c.innerHTML += `
-                    <div class="history-date-block">
-                        <div class="h-header"><span>${date}</span> <span style="color:var(--pb-blue)">${formatTime(dayData.workMs)}</span></div>
-                        <div class="h-details" style="padding:10px; background:var(--card-bg)">
-                            <div class="h-detail-item">FIRST IN: ${formatClockTime(dayData.startTime)}</div>
-                            <div class="h-detail-item">LAST OUT: ${formatClockTime(dayData.endTime)}</div>
-                        </div>
-                    </div>`;
+                    // CHECK ABSENT STATUS
+                    if(dayData.status === 'absent') {
+                        c.innerHTML += `
+                        <div class="history-date-block" style="border-left: 4px solid var(--red);">
+                            <div class="h-header"><span>${date}</span> <span style="color:var(--red); font-weight:bold;">ABSENT</span></div>
+                        </div>`;
+                    } else {
+                        totalMonthMs += dayData.workMs;
+                        c.innerHTML += `
+                        <div class="history-date-block">
+                            <div class="h-header"><span>${date}</span> <span style="color:var(--pb-blue)">${formatTime(dayData.workMs)}</span></div>
+                            <div class="h-details" style="padding:10px; background:var(--card-bg)">
+                                <div class="h-detail-item">FIRST IN: ${formatClockTime(dayData.startTime)}</div>
+                                <div class="h-detail-item">LAST OUT: ${formatClockTime(dayData.endTime)}</div>
+                            </div>
+                        </div>`;
+                    }
                 }
             }
         });
