@@ -164,6 +164,7 @@
         .action-btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;}
         .btn-absent { background: #fee2e2; color: var(--red); }
         .btn-trash { color: #ccc; cursor: pointer; font-size: 1.2rem; }
+        .btn-trash { color: #ccc; cursor: pointer; font-size: 1.2rem; }
         .btn-trash:hover { color: var(--red); }
         
         .select-item { padding: 15px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; cursor: pointer; }
@@ -439,7 +440,7 @@
 
     // --- DATA ---
     let db_staff = JSON.parse(localStorage.getItem('pb_db_staff')) || []; 
-    // db_live schema: { state: 'in'|'out', lastAction: ts, totalWorkMs: int, currentStart: ts }
+    // db_live schema: { state: 'in'|'out', lastAction: ts, totalWorkMs: int, currentStart: ts, date: 'yyyy-mm-dd' }
     let db_live = JSON.parse(localStorage.getItem('pb_live_data')) || {};
     let db_history = JSON.parse(localStorage.getItem('pb_history_data')) || {};
     let db_removed = JSON.parse(localStorage.getItem('pb_removed_data')) || {};
@@ -458,6 +459,44 @@
         historyMode: 'daily', // 'daily' or 'staff'
         reportStaff: null
     };
+
+    // --- CORE FIX 1: CHECK FOR NEW DAY ON LOAD ---
+    // If the date stored in local storage is different from today, RESET LIVE DATA
+    function checkNewDayReset() {
+        const storedDate = localStorage.getItem('pb_last_app_date');
+        
+        // If app hasn't been opened today, reset everything
+        if (storedDate && storedDate !== appState.todayStr) {
+            // Archive old live data if it exists
+            archiveAndResetLiveData(storedDate);
+        }
+        localStorage.setItem('pb_last_app_date', appState.todayStr);
+    }
+    
+    function archiveAndResetLiveData(oldDate) {
+        // Optional: Move any stuck "Live" data to history for the previous day
+        // This handles the "I left it open overnight" case
+        Object.keys(db_live).forEach(name => {
+             const l = db_live[name];
+             if (l.totalWorkMs > 0 || l.state === 'in') {
+                 if (!db_history[oldDate]) db_history[oldDate] = {};
+                 // If they were still 'in', cap it? For now, just save what was accumulated.
+                 db_history[oldDate][name] = {
+                     workMs: l.totalWorkMs,
+                     startTime: l.startTime,
+                     endTime: l.lastAction, // Approximated
+                     status: 'present'
+                 };
+             }
+        });
+        
+        // WIPE LIVE DATA
+        db_live = {}; 
+        localStorage.setItem('pb_live_data', JSON.stringify(db_live));
+        if(db_history[oldDate]) localStorage.setItem('pb_history_data', JSON.stringify(db_history));
+    }
+    
+    checkNewDayReset();
 
     // --- LOGIN LOGIC ---
     document.getElementById('loginPassInput').addEventListener('keypress', function (e) {
@@ -488,6 +527,7 @@
     renderDateStrip();
     renderAttendanceView();
     renderStaffManager();
+    // Increase frequency to check for day rollover
     setInterval(updateHeartbeat, 1000);
 
     // --- LOGIC ---
@@ -569,10 +609,7 @@
         const isLive = (appState.selectedDate === appState.todayStr);
         const isFuture = (appState.selectedDate > appState.todayStr);
         
-        // MOD: Show staff if they joined on/before date OR if they have history data for this day (edit case)
-        // OR if strict filter would be too confusing, we rely on the user adding them manually via the + button.
-        // We filter standard logic: joined <= date. 
-        // BUT if history exists for that day, we force include them.
+        // Show staff if: Joined Date <= Selected Date OR History exists for this date
         let activeStaff = db_staff.filter(s => {
             const hasHistory = db_history[appState.selectedDate] && db_history[appState.selectedDate][s.name];
             return (s.joined <= appState.selectedDate) || hasHistory;
@@ -595,8 +632,17 @@
 
             if(isFuture) { label = 'Not Marked'; pillClass = 'pill-idle'; } 
             else if(isLive) {
-                if(!db_live[name]) db_live[name] = { state: 'out', lastAction: 0, totalWorkMs: 0, startTime: null };
+                if(!db_live[name]) db_live[name] = { state: 'out', lastAction: 0, totalWorkMs: 0, startTime: null, date: appState.todayStr };
                 const l = db_live[name];
+                
+                // --- FAILSAFE: Check if this "Live" data is actually stale (from yesterday)
+                if(l.date && l.date !== appState.todayStr) {
+                    // Stale data detected! Reset this person individually.
+                    l.state = 'out'; l.totalWorkMs = 0; l.startTime = null; l.date = appState.todayStr;
+                    // Save cleaned state
+                    localStorage.setItem('pb_live_data', JSON.stringify(db_live));
+                }
+
                 status = l.state;
                 wMs = calcTotalTime(l);
 
@@ -673,16 +719,22 @@
         const input = document.getElementById('newStaffInput');
         const name = input.value.trim();
         if(!name) return;
-        db_staff.push({ name: name, joined: appState.todayStr });
+        
+        // CORE FIX 2: JOIN DATE IS THE VIEWED DATE (so they appear if added on past date)
+        const joinDate = appState.selectedDate; 
+        
+        db_staff.push({ name: name, joined: joinDate });
         localStorage.setItem('pb_db_staff', JSON.stringify(db_staff));
-        // Hide immediately
-        if(!db_removed[appState.todayStr]) db_removed[appState.todayStr] = [];
-        db_removed[appState.todayStr].push(name);
-        localStorage.setItem('pb_removed_data', JSON.stringify(db_removed));
+        
+        if(db_removed[appState.selectedDate]) {
+             db_removed[appState.selectedDate] = db_removed[appState.selectedDate].filter(n => n !== name);
+             localStorage.setItem('pb_removed_data', JSON.stringify(db_removed));
+        }
+
         input.value = '';
         renderStaffManager();
         renderAttendanceView();
-        showToast("Staff Saved! Use + to add to daily list.", "success");
+        showToast("Staff Added!", "success");
     }
 
     function openActionModal(name) {
@@ -836,6 +888,8 @@
             l.lastAction = now; // Mark Start of this segment
             if(!l.startTime) l.startTime = now; // Mark First Punch of day
             if(!l.totalWorkMs) l.totalWorkMs = 0;
+            // Mark the DATE of this record
+            l.date = appState.todayStr;
         } 
         else if(newState === 'out') {
             // End session and accumulate
@@ -850,6 +904,7 @@
         }
         else if(newState === 'absent') {
             l.state = 'absent';
+            l.date = appState.todayStr;
             // Save Absent to History Immediately
             saveHistory(name, 0, null, null, 'absent');
         }
@@ -881,6 +936,20 @@
     }
     
     function updateHeartbeat() {
+        // --- LIVE DATE CHECKER: Detect if date changed while app was open ---
+        const realNow = getLocalDateString();
+        if (realNow !== appState.todayStr) {
+             // New Day Detected while app was running!
+             const oldDate = appState.todayStr;
+             appState.todayStr = realNow;
+             appState.selectedDate = realNow;
+             archiveAndResetLiveData(oldDate);
+             renderDateStrip();
+             renderAttendanceView();
+             showToast("New Day Started! Timers Reset.");
+             return;
+        }
+
         if(appState.selectedDate !== appState.todayStr) return;
         let totalH = 0; const removedForDay = db_removed[appState.selectedDate] || [];
         const activeStaff = db_staff.filter(s => {
@@ -964,22 +1033,10 @@
     }
     function openSelectStaffModal() {
         const container = document.getElementById('selectStaffList'); container.innerHTML = '';
-        // MOD: Show ALL staff, even if joined date is later, to allow manual fix for forgotten entries
+        // FIX: Show all staff to allow manual restore
         const eligible = db_staff; 
-        const removedForDay = db_removed[appState.selectedDate] || [];
-        // Only show if they are currently "hidden" (in removed list) OR if we want to add someone who wasn't there
-        // Actually simplest is: Show all staff who are NOT currently in the view
-        // But the view logic filters by removed.
-        // So we show anyone who IS in the removed list OR anyone who is filtered out by date
-        // Simplest: Show everyone. If they are already in view, maybe grey out?
-        // But strict requirement: "add staff to previous day".
-        // Let's just list everyone who is in the "removed" array for this day, AND anyone not visible.
         
         eligible.forEach(s => {
-             // If already visible in main view, don't show here?
-             // Main view logic: !removed && (joined <= date || hasHistory)
-             // So here we show: removed || (!joined <= date && !hasHistory)
-             // Simplified: Just show everyone. Clicking them ensures they are in the day.
              container.innerHTML += `<div class="select-item" onclick="addStaffToDay('${s.name}')"><div class="avatar">${s.name[0]}</div><span style="font-weight:600; color:var(--text-main);">${s.name}</span><span style="margin-left:auto; color:var(--pb-blue); font-weight:bold; font-size:0.8rem;">ADD +</span></div>`;
         });
         
@@ -988,7 +1045,16 @@
     function addStaffToDay(name) {
         let list = db_removed[appState.selectedDate] || []; list = list.filter(n => n !== name);
         db_removed[appState.selectedDate] = list; localStorage.setItem('pb_removed_data', JSON.stringify(db_removed));
-        // Force a history entry so renderAttendanceView picks them up even if joined date is wrong
+        
+        // CORE FIX 3: UPDATE JOIN DATE IF THIS DATE IS EARLIER
+        // This fixes the "gap" in days
+        const staffObj = db_staff.find(s => s.name === name);
+        if(staffObj && appState.selectedDate < staffObj.joined) {
+            staffObj.joined = appState.selectedDate;
+            localStorage.setItem('pb_db_staff', JSON.stringify(db_staff));
+        }
+
+        // Force a history entry so renderAttendanceView picks them up even if joined date is wrong (fallback)
         if(!db_history[appState.selectedDate]) db_history[appState.selectedDate] = {};
         if(!db_history[appState.selectedDate][name]) {
              db_history[appState.selectedDate][name] = { workMs: 0, startTime: 0, endTime: 0, status: 'absent' };
@@ -1010,15 +1076,35 @@
     function renderHistoryView() {
         const c = document.getElementById('historyContainer'); c.innerHTML = '';
         
-        // MODE 1: DAILY
+        // MODE 1: DAILY - UPDATED TO SHOW ABSENT
         if(appState.historyMode === 'daily') {
-            Object.keys(db_history).sort().reverse().forEach(date => {
-                const d = db_history[date]; let rows = '';
-                Object.keys(d).forEach(name => {
-                    const info = d[name];
-                    rows += `<div class="h-row"><div class="h-main-row"><span class="h-name">${name}</span><span class="h-time">${formatTime(info.workMs)}</span></div><div class="h-details"><div class="h-detail-item"><i class="fas fa-sign-in-alt"></i> First: ${formatClockTime(info.startTime)}</div><div class="h-detail-item"><i class="fas fa-sign-out-alt"></i> Last: ${formatClockTime(info.endTime)}</div></div></div>`;
+            const historyDates = Object.keys(db_history).sort().reverse();
+            if(historyDates.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center; color:#999">No history data found.</div>'; return; }
+
+            historyDates.forEach(date => {
+                const d = db_history[date]; 
+                let rows = '';
+                
+                // Get ALL staff who joined by this date
+                const eligibleStaff = db_staff.filter(s => s.joined <= date);
+                
+                eligibleStaff.forEach(s => {
+                    const name = s.name;
+                    // Check if they have data for this day
+                    if(d[name]) {
+                        const info = d[name];
+                        if(info.status === 'absent') {
+                             rows += `<div class="h-row" style="border-left:3px solid var(--red)"><div class="h-main-row"><span class="h-name">${name}</span><span style="color:var(--red); font-weight:bold; font-size:0.8rem;">ABSENT</span></div></div>`;
+                        } else {
+                             rows += `<div class="h-row"><div class="h-main-row"><span class="h-name">${name}</span><span class="h-time">${formatTime(info.workMs)}</span></div><div class="h-details"><div class="h-detail-item"><i class="fas fa-sign-in-alt"></i> First: ${formatClockTime(info.startTime)}</div><div class="h-detail-item"><i class="fas fa-sign-out-alt"></i> Last: ${formatClockTime(info.endTime)}</div></div></div>`;
+                        }
+                    } else {
+                        // NO DATA = ABSENT
+                        rows += `<div class="h-row" style="border-left:3px solid var(--red); opacity:0.7;"><div class="h-main-row"><span class="h-name">${name}</span><span style="color:var(--red); font-weight:bold; font-size:0.8rem;">ABSENT (No Data)</span></div></div>`;
+                    }
                 });
-                c.innerHTML += `<div class="history-date-block"><div class="h-header"><span>${date}</span><span>${Object.keys(d).length} Present</span></div>${rows}</div>`;
+                
+                c.innerHTML += `<div class="history-date-block"><div class="h-header"><span>${date}</span></div>${rows}</div>`;
             });
         } 
         // MODE 2: STAFF LIST
@@ -1059,41 +1145,62 @@
         c.innerHTML = `<div style="margin-bottom:10px; font-weight:bold; text-align:center;">${name} - ${monthVal}</div><div class="action-btn" onclick="renderHistoryView()" style="background:var(--bg); color:var(--text-sub); width:auto; display:inline-block; padding:5px 15px; margin-bottom:15px; font-size:0.8rem;">&larr; Back to List</div>`;
         
         let totalMonthMs = 0;
-        let found = false;
         
-        Object.keys(db_history).sort().forEach(date => {
-            if(date.startsWith(monthVal)) {
-                const dayData = db_history[date][name];
-                if(dayData) {
-                    found = true;
-                    // CHECK ABSENT STATUS
-                    if(dayData.status === 'absent') {
-                        c.innerHTML += `
-                        <div class="history-date-block" style="border-left: 4px solid var(--red);">
-                            <div class="h-header"><span>${date}</span> <span style="color:var(--red); font-weight:bold;">ABSENT</span></div>
-                        </div>`;
-                    } else {
-                        totalMonthMs += dayData.workMs;
-                        c.innerHTML += `
-                        <div class="history-date-block">
-                            <div class="h-header"><span>${date}</span> <span style="color:var(--pb-blue)">${formatTime(dayData.workMs)}</span></div>
-                            <div class="h-details" style="padding:10px; background:var(--card-bg)">
-                                <div class="h-detail-item">FIRST IN: ${formatClockTime(dayData.startTime)}</div>
-                                <div class="h-detail-item">LAST OUT: ${formatClockTime(dayData.endTime)}</div>
-                            </div>
-                        </div>`;
-                    }
-                }
-            }
-        });
+        // FIND JOIN DATE
+        const staffObj = db_staff.find(s => s.name === name);
+        const joinDate = staffObj ? staffObj.joined : '2099-01-01';
 
-        if(!found) {
+        // GENERATE ALL DAYS OF MONTH UP TO TODAY
+        const [y, m] = monthVal.split('-').map(Number);
+        const daysInMonth = new Date(y, m, 0).getDate();
+        
+        let htmlBuffer = '';
+
+        for(let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            
+            // Stop if future
+            if(dateStr > appState.todayStr) break;
+            
+            // Skip if before joined
+            if(dateStr < joinDate) continue;
+
+            const dayData = (db_history[dateStr] && db_history[dateStr][name]) ? db_history[dateStr][name] : null;
+
+            if(dayData) {
+                // HAS DATA
+                if(dayData.status === 'absent') {
+                    htmlBuffer += `
+                    <div class="history-date-block" style="border-left: 4px solid var(--red);">
+                        <div class="h-header"><span>${dateStr}</span> <span style="color:var(--red); font-weight:bold;">ABSENT</span></div>
+                    </div>`;
+                } else {
+                    totalMonthMs += dayData.workMs;
+                    htmlBuffer += `
+                    <div class="history-date-block">
+                        <div class="h-header"><span>${dateStr}</span> <span style="color:var(--pb-blue)">${formatTime(dayData.workMs)}</span></div>
+                        <div class="h-details" style="padding:10px; background:var(--card-bg)">
+                            <div class="h-detail-item">FIRST IN: ${formatClockTime(dayData.startTime)}</div>
+                            <div class="h-detail-item">LAST OUT: ${formatClockTime(dayData.endTime)}</div>
+                        </div>
+                    </div>`;
+                }
+            } else {
+                // NO DATA = ABSENT (Since date >= joined)
+                htmlBuffer += `
+                <div class="history-date-block" style="border-left: 4px solid var(--red); opacity:0.8;">
+                    <div class="h-header"><span>${dateStr}</span> <span style="color:var(--red); font-weight:bold;">ABSENT</span></div>
+                </div>`;
+            }
+        }
+
+        if(htmlBuffer === '') {
             c.innerHTML += `<div style="text-align:center; padding:30px; color:var(--text-sub)">No data found for this month.</div>`;
         } else {
             c.innerHTML = `<div style="background:var(--pb-blue); color:white; padding:15px; border-radius:8px; margin-bottom:15px; text-align:center;">
                 <div style="font-size:0.8rem; opacity:0.8;">TOTAL HOURS (${monthVal})</div>
                 <div style="font-size:1.5rem; font-weight:bold;">${Math.floor(totalMonthMs/3600000)}h ${Math.floor((totalMonthMs%3600000)/60000)}m</div>
-            </div>` + c.innerHTML;
+            </div>` + htmlBuffer;
         }
     }
    
