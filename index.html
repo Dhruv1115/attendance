@@ -75,6 +75,8 @@
         .pill-out { background: #f0f2f5; color: #666; }
         .pill-absent { background: #ffebeb; color: var(--red); border: 1px solid #ffcccc; }
         .pill-idle { background: #f0f2f5; color: #666; }
+        .pill-overtime { background: #fff3e0; color: var(--orange); border: 1px solid #ffcc80; }
+
 
         .mini-stat { display: flex; flex-direction: column; text-align: center; flex: 1; }
         .mini-stat:first-child { text-align: left; }
@@ -310,12 +312,8 @@
                 
                 <div class="setting-card">
                     <div class="setting-item">
-                        <div class="setting-label"><i class="fas fa-coins"></i> Currency / Symbol</div>
-                        <input type="text" id="currencyInput" class="pb-input" style="width:60px; padding:8px;" value="$" placeholder="$" onblur="saveProfile()">
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-label"><i class="fas fa-tag"></i> Hourly Rate (Default)</div>
-                        <input type="number" id="hourlyRateInput" class="pb-input" style="width:60px; padding:8px;" value="0" onblur="saveProfile()">
+                        <div class="setting-label"><i class="fas fa-clock"></i> Default Hours</div>
+                        <input type="number" id="defaultHoursInput" class="pb-input" style="width:60px; padding:8px;" value="8" min="1" max="24" step="0.5" onblur="saveProfile()">
                     </div>
                 </div>
 
@@ -337,7 +335,7 @@
                 </div>
 
                 <div class="made-by">
-                    <img src="https://via.placeholder.com/50?text=PC" alt="Logo">
+                    <img src="images/logo.jpeg" alt="Logo">
                     <p>Designed for Patel Craftex</p>
                     <p style="margin-top:5px; font-size:0.7rem;">Made by Dhruv Patel</p>
                 </div>
@@ -377,16 +375,8 @@
 
                 <div id="modalManualSection" class="manual-box">
                     <div style="font-size:0.8rem; color:var(--text-sub); margin-bottom:10px; font-weight:bold; text-transform:uppercase;">Manual Correction</div>
-                    <div style="display:flex; flex-direction:column; gap:10px;">
-                        <select id="editParamSelect" class="pb-input" style="background:var(--bg); padding:10px; font-weight:500;">
-                            <option value="fix_in">Update Start Time</option>
-                            <option value="fix_out">Update End Time</option>
-                        </select>
-                        <div style="display:flex; gap:5px;">
-                            <input type="time" id="manualSingleTime" class="pb-input" style="padding:10px; background:var(--bg);">
-                            <button class="pb-btn" onclick="submitSmartUpdate()" style="width:80px;">UPDATE</button>
-                        </div>
-                    </div>
+                    <div id="punchEditList" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    <button class="action-btn" onclick="addNewPunch()" style="background:var(--pb-blue); color:white; margin-top:10px; font-size:0.85rem;">+ Add Punch</button>
                 </div>
 
                 <button class="action-btn" onclick="closeModal()" style="background:var(--bg); color:var(--text-main); margin-top:10px;">Close</button>
@@ -440,7 +430,7 @@
 
     // --- DATA ---
     let db_staff = JSON.parse(localStorage.getItem('pb_db_staff')) || []; 
-    // db_live schema: { state: 'in'|'out', lastAction: ts, totalWorkMs: int, currentStart: ts, date: 'yyyy-mm-dd' }
+    // db_live schema: { state: 'in'|'out', lastAction: ts, totalWorkMs: int, currentStart: ts, date: 'yyyy-mm-dd', punches: [{type:'in'|'out', time:ts}] }
     let db_live = JSON.parse(localStorage.getItem('pb_live_data')) || {};
     let db_history = JSON.parse(localStorage.getItem('pb_history_data')) || {};
     let db_removed = JSON.parse(localStorage.getItem('pb_removed_data')) || {};
@@ -448,9 +438,20 @@
     let db_prefs = JSON.parse(localStorage.getItem('pb_prefs')) || { dark: false };
     
     // Settings
-    let db_currency = localStorage.getItem('pb_currency') || '$';
-    let db_hourlyRate = parseFloat(localStorage.getItem('pb_hourlyRate')) || 0;
+    let db_defaultHours = parseFloat(localStorage.getItem('pb_defaultHours')) || 8;
     let db_password = localStorage.getItem('pb_password') || '1234';
+
+    // Migration: Add defaultHours to existing staff if not present
+    let migrationNeeded = false;
+    db_staff.forEach(s => {
+        if (!s.hasOwnProperty('defaultHours')) {
+            s.defaultHours = 8;
+            migrationNeeded = true;
+        }
+    });
+    if (migrationNeeded) {
+        localStorage.setItem('pb_db_staff', JSON.stringify(db_staff));
+    }
 
     let appState = {
         todayStr: getLocalDateString(),
@@ -485,7 +486,8 @@
                      workMs: l.totalWorkMs,
                      startTime: l.startTime,
                      endTime: l.lastAction, // Approximated
-                     status: 'present'
+                     status: 'present',
+                     punches: l.punches || []
                  };
              }
         });
@@ -517,8 +519,7 @@
     // --- INIT ---
     document.getElementById('displayBizName').textContent = db_bizName;
     document.getElementById('bizNameInput').value = db_bizName;
-    document.getElementById('currencyInput').value = db_currency;
-    document.getElementById('hourlyRateInput').value = db_hourlyRate;
+    document.getElementById('defaultHoursInput').value = db_defaultHours;
 
     if(db_prefs.dark) {
         document.body.classList.add('dark-mode');
@@ -540,7 +541,7 @@
     // EXPORT LOGIC
     function exportToExcel() {
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Date,Staff Name,First In,Last Out,Total Work Duration,Est. Pay (" + db_currency + ")\r\n";
+        csvContent += "Date,Staff Name,First In,Last Out,Total Work Duration\r\n";
 
         const dates = Object.keys(db_history).sort().reverse();
         dates.forEach(date => {
@@ -550,10 +551,8 @@
                 const inTime = r.startTime ? new Date(r.startTime).toLocaleTimeString() : '--:--';
                 const outTime = r.endTime ? new Date(r.endTime).toLocaleTimeString() : '--:--';
                 const workStr = formatTime(r.workMs);
-                const hours = r.workMs / 3600000;
-                const pay = (hours * db_hourlyRate).toFixed(2);
 
-                const row = `${date},${name},${inTime},${outTime},${workStr},${pay}`;
+                const row = `${date},${name},${inTime},${outTime},${workStr}`;
                 csvContent += row + "\r\n";
             });
         });
@@ -632,13 +631,16 @@
 
             if(isFuture) { label = 'Not Marked'; pillClass = 'pill-idle'; } 
             else if(isLive) {
-                if(!db_live[name]) db_live[name] = { state: 'out', lastAction: 0, totalWorkMs: 0, startTime: null, date: appState.todayStr };
+                if(!db_live[name]) db_live[name] = { state: 'out', lastAction: 0, totalWorkMs: 0, startTime: null, date: appState.todayStr, punches: [] };
                 const l = db_live[name];
+                
+                // Initialize punches array if missing
+                if(!l.punches) l.punches = [];
                 
                 // --- FAILSAFE: Check if this "Live" data is actually stale (from yesterday)
                 if(l.date && l.date !== appState.todayStr) {
                     // Stale data detected! Reset this person individually.
-                    l.state = 'out'; l.totalWorkMs = 0; l.startTime = null; l.date = appState.todayStr;
+                    l.state = 'out'; l.totalWorkMs = 0; l.startTime = null; l.date = appState.todayStr; l.punches = [];
                     // Save cleaned state
                     localStorage.setItem('pb_live_data', JSON.stringify(db_live));
                 }
@@ -665,6 +667,13 @@
 
             totalH += wMs;
             const safeName = name.replace(/\s/g, '_');
+            
+            // Check for overtime
+            const staffDefaultHours = s.defaultHours || db_defaultHours;
+            const defaultHoursMs = staffDefaultHours * 3600000;
+            const isOvertime = wMs > defaultHoursMs;
+            const overtimeMs = isOvertime ? (wMs - defaultHoursMs) : 0;
+            const overtimePill = isOvertime ? `<div class="pill pill-overtime">OT: ${formatTime(overtimeMs)}</div>` : '';
 
             container.innerHTML += `
                 <div class="staff-card" onclick="openActionModal('${name}')">
@@ -673,7 +682,10 @@
                             <div class="avatar">${name[0]}</div>
                             <div style="font-weight:600; color:var(--text-main);">${name}</div>
                         </div>
-                        <div class="pill ${pillClass}">${label}</div>
+                        <div style="display:flex; gap:5px; align-items:center;">
+                            ${overtimePill}
+                            <div class="pill ${pillClass}">${label}</div>
+                        </div>
                     </div>
                     <div class="card-row-bottom">
                         <div class="mini-stat">
@@ -723,7 +735,7 @@
         // CORE FIX 2: JOIN DATE IS THE VIEWED DATE (so they appear if added on past date)
         const joinDate = appState.selectedDate; 
         
-        db_staff.push({ name: name, joined: joinDate });
+        db_staff.push({ name: name, joined: joinDate, defaultHours: 8 });
         localStorage.setItem('pb_db_staff', JSON.stringify(db_staff));
         
         if(db_removed[appState.selectedDate]) {
@@ -767,6 +779,12 @@
         
         // ALLOW MANUAL EDIT FOR PAST DATES
         manualSection.style.display = (isLive || isPast) ? 'block' : 'none';
+        
+        // Populate punch edit list for past dates
+        if(isPast) {
+            renderPunchEditList();
+        }
+        
         container.innerHTML = '';
         
         if(isLive) {
@@ -785,8 +803,156 @@
              container.innerHTML = `<div style="text-align:center; padding:10px; color:var(--text-sub); font-size:0.9rem;">Historical Record</div><button class="action-btn" onclick="removeStaffFromDay()" style="background:var(--bg); border:1px solid var(--border); color:var(--text-sub); margin-top:10px;"><i class="fas fa-eye-slash"></i> Hide from this Date</button>`;
         }
     }
+    
+    // --- PUNCH EDITING FUNCTIONS ---
+    function renderPunchEditList() {
+        const name = appState.activeStaffId;
+        const dateKey = appState.selectedDate;
+        const container = document.getElementById('punchEditList');
+        
+        if(!db_history[dateKey] || !db_history[dateKey][name]) {
+            container.innerHTML = '<div style="text-align:center; padding:10px; color:var(--text-sub); font-size:0.85rem;">No punches recorded</div>';
+            return;
+        }
+        
+        const record = db_history[dateKey][name];
+        if(!record.punches || record.punches.length === 0) {
+            // Legacy data - create punches from startTime/endTime
+            record.punches = [];
+            if(record.startTime) record.punches.push({type: 'in', time: record.startTime});
+            if(record.endTime) record.punches.push({type: 'out', time: record.endTime});
+        }
+        
+        container.innerHTML = '';
+        record.punches.forEach((punch, index) => {
+            const timeStr = new Date(punch.time).toTimeString().slice(0,5); // HH:MM
+            const icon = punch.type === 'in' ? 'fa-sign-in-alt' : 'fa-sign-out-alt';
+            const label = punch.type === 'in' ? 'IN' : 'OUT';
+            const color = punch.type === 'in' ? 'var(--green)' : 'var(--red)';
+            
+            container.innerHTML += `
+                <div style="display:flex; gap:8px; align-items:center; background:var(--bg); padding:8px; border-radius:6px;">
+                    <i class="fas ${icon}" style="color:${color}; width:20px;"></i>
+                    <span style="font-weight:600; font-size:0.85rem; color:${color}; min-width:35px;">${label}</span>
+                    <input type="time" value="${timeStr}" class="pb-input" style="flex:1; padding:6px; font-size:0.9rem;" onchange="updatePunchTime(${index}, this.value)">
+                    <i class="fas fa-trash-alt" style="color:var(--red); cursor:pointer; padding:8px;" onclick="deletePunch(${index})" title="Delete"></i>
+                </div>
+            `;
+        });
+    }
+    
+    function updatePunchTime(index, timeStr) {
+        const name = appState.activeStaffId;
+        const dateKey = appState.selectedDate;
+        
+        if(!timeStr) return;
+        
+        const [h, m] = timeStr.split(':');
+        const [y, mo, d] = dateKey.split('-').map(Number);
+        const newTime = new Date();
+        newTime.setFullYear(y, mo - 1, d);
+        newTime.setHours(h, m, 0, 0);
+        
+        const record = db_history[dateKey][name];
+        record.punches[index].time = newTime.getTime();
+        
+        // Recalculate everything
+        recalculateFromPunches(dateKey, name);
+        
+        updateActionUI();
+        renderAttendanceView();
+        showToast("Punch time updated", "success");
+    }
+    
+    function deletePunch(index) {
+        const name = appState.activeStaffId;
+        const dateKey = appState.selectedDate;
+        
+        if(!confirm("Delete this punch?")) return;
+        
+        const record = db_history[dateKey][name];
+        record.punches.splice(index, 1);
+        
+        // Recalculate everything
+        recalculateFromPunches(dateKey, name);
+        
+        updateActionUI();
+        renderAttendanceView();
+        showToast("Punch deleted", "success");
+    }
+    
+    function addNewPunch() {
+        const name = appState.activeStaffId;
+        const dateKey = appState.selectedDate;
+        
+        if(!db_history[dateKey]) db_history[dateKey] = {};
+        if(!db_history[dateKey][name]) {
+            db_history[dateKey][name] = { workMs: 0, startTime: null, endTime: null, status: 'present', punches: [] };
+        }
+        
+        const record = db_history[dateKey][name];
+        if(!record.punches) record.punches = [];
+        
+        // Determine type based on last punch
+        const lastPunch = record.punches[record.punches.length - 1];
+        const newType = (!lastPunch || lastPunch.type === 'out') ? 'in' : 'out';
+        
+        // Default time: current time if today, or 9 AM if past date
+        const [y, mo, d] = dateKey.split('-').map(Number);
+        const defaultTime = new Date();
+        defaultTime.setFullYear(y, mo - 1, d);
+        if(dateKey < appState.todayStr) {
+            defaultTime.setHours(9, 0, 0, 0);
+        }
+        
+        record.punches.push({ type: newType, time: defaultTime.getTime() });
+        
+        // Recalculate everything
+        recalculateFromPunches(dateKey, name);
+        
+        updateActionUI();
+        renderAttendanceView();
+        showToast(`Added ${newType.toUpperCase()} punch`, "success");
+    }
+    
+    function recalculateFromPunches(dateKey, name) {
+        const record = db_history[dateKey][name];
+        
+        if(!record.punches || record.punches.length === 0) {
+            record.workMs = 0;
+            record.startTime = null;
+            record.endTime = null;
+            record.status = 'absent';
+            localStorage.setItem('pb_history_data', JSON.stringify(db_history));
+            return;
+        }
+        
+        // Sort punches by time
+        record.punches.sort((a, b) => a.time - b.time);
+        
+        // Calculate work time
+        let totalWorkMs = 0;
+        let currentSessionStart = null;
+        
+        record.punches.forEach(punch => {
+            if(punch.type === 'in') {
+                currentSessionStart = punch.time;
+            } else if(punch.type === 'out' && currentSessionStart) {
+                totalWorkMs += (punch.time - currentSessionStart);
+                currentSessionStart = null;
+            }
+        });
+        
+        // Update record
+        record.workMs = totalWorkMs;
+        record.startTime = record.punches[0].time;
+        record.endTime = record.punches[record.punches.length - 1].time;
+        record.status = 'present';
+        
+        localStorage.setItem('pb_history_data', JSON.stringify(db_history));
+    }
 
-    // --- SMART LOGIC ---
+    // --- SMART LOGIC (DEPRECATED - keeping for compatibility) ---
     function submitSmartUpdate() {
         const type = document.getElementById('editParamSelect').value;
         const timeVal = document.getElementById('manualSingleTime').value;
@@ -808,26 +974,48 @@
             record.status = 'present';
             
             if(type === 'fix_in') {
+                const oldStartTime = record.startTime;
+                // Update the start time
                 record.startTime = entryMs;
-                // UPDATE LOGIC: Recalc Total Time if End Time exists
-                if(record.endTime) {
-                    if(record.endTime > entryMs) {
-                        record.workMs = record.endTime - entryMs;
-                    } else {
-                        // End Time is before Start Time (invalid), reset work to 0
-                        record.workMs = 0; 
+                
+                // Only recalculate workMs if it appears this was a single-session day
+                // (i.e., workMs equals endTime - startTime, suggesting no breaks)
+                if(record.endTime && record.endTime > 0 && oldStartTime > 0) {
+                    const oldCalculatedWork = record.endTime - oldStartTime;
+                    // If workMs matches the old simple calculation (within 1 second tolerance)
+                    // then this was likely a single session, so we should recalculate
+                    if(Math.abs(record.workMs - oldCalculatedWork) < 1000) {
+                        if(record.endTime > entryMs) {
+                            record.workMs = record.endTime - entryMs;
+                        } else {
+                            record.workMs = 0;
+                        }
                     }
+                    // Otherwise, preserve the existing workMs as it accounts for breaks
                 }
-                showToast("Past Start Time Updated", "success");
+                showToast("Start Time Updated", "success");
             } 
             else if(type === 'fix_out') {
+                const oldEndTime = record.endTime;
+                // Update the end time
                 record.endTime = entryMs;
-                if(record.startTime && entryMs > record.startTime) {
-                    record.workMs = entryMs - record.startTime;
-                } else {
-                    record.workMs = 0;
+                
+                // Only recalculate workMs if it appears this was a single-session day
+                // (i.e., workMs equals endTime - startTime, suggesting no breaks)
+                if(record.startTime && record.startTime > 0 && oldEndTime > 0) {
+                    const oldCalculatedWork = oldEndTime - record.startTime;
+                    // If workMs matches the old simple calculation (within 1 second tolerance)
+                    // then this was likely a single session, so we should recalculate
+                    if(Math.abs(record.workMs - oldCalculatedWork) < 1000) {
+                        if(entryMs > record.startTime) {
+                            record.workMs = entryMs - record.startTime;
+                        } else {
+                            record.workMs = 0;
+                        }
+                    }
+                    // Otherwise, preserve the existing workMs as it accounts for breaks
                 }
-                showToast("Past End Time Updated", "success");
+                showToast("End Time Updated", "success");
             }
             
             localStorage.setItem('pb_history_data', JSON.stringify(db_history));
@@ -841,9 +1029,16 @@
         
         if(type === 'fix_in') {
             if(l.state !== 'in') return showToast("Must be currently Punched In", "error");
-            l.lastAction = entryMs; // Moves the start point of current session
-            // Don't change totalWorkMs, just current session start
-            if(!l.startTime) l.startTime = entryMs; // Fix day start if first punch
+            
+            // Calculate the current session duration before we change lastAction
+            const currentSessionDuration = Date.now() - l.lastAction;
+            
+            // Update the last action (start of current session)
+            l.lastAction = entryMs;
+            
+            // Update the first punch time of the day
+            l.startTime = entryMs;
+            
             showToast("Current session start updated", "success");
         } 
         else if(type === 'fix_out') {
@@ -888,6 +1083,8 @@
             l.lastAction = now; // Mark Start of this segment
             if(!l.startTime) l.startTime = now; // Mark First Punch of day
             if(!l.totalWorkMs) l.totalWorkMs = 0;
+            if(!l.punches) l.punches = [];
+            l.punches.push({type: 'in', time: now}); // Record punch-in
             // Mark the DATE of this record
             l.date = appState.todayStr;
         } 
@@ -899,14 +1096,16 @@
             }
             l.state = 'out';
             l.lastAction = now; // Mark End time
+            if(!l.punches) l.punches = [];
+            l.punches.push({type: 'out', time: now}); // Record punch-out
             
-            saveHistory(name, l.totalWorkMs, l.startTime, now);
+            saveHistory(name, l.totalWorkMs, l.startTime, now, 'present', l.punches);
         }
         else if(newState === 'absent') {
             l.state = 'absent';
             l.date = appState.todayStr;
             // Save Absent to History Immediately
-            saveHistory(name, 0, null, null, 'absent');
+            saveHistory(name, 0, null, null, 'absent', []);
         }
         else if(newState === 'idle') {
             l.state = 'out'; // Reset to out/idle
@@ -916,13 +1115,14 @@
         updateActionUI(); renderAttendanceView();
     }
     
-    function saveHistory(name, workMs, start, end, status='present') {
+    function saveHistory(name, workMs, start, end, status='present', punches=null) {
          if(!db_history[appState.todayStr]) db_history[appState.todayStr] = {};
          db_history[appState.todayStr][name] = { 
              workMs: workMs, 
              startTime: start, 
              endTime: end,
-             status: status
+             status: status,
+             punches: punches || [] // Array of {type: 'in'|'out', time: timestamp}
          };
          localStorage.setItem('pb_history_data', JSON.stringify(db_history));
     }
@@ -985,17 +1185,14 @@
     
     function saveProfile() {
         const n = document.getElementById('bizNameInput').value;
-        const c = document.getElementById('currencyInput').value;
-        const h = document.getElementById('hourlyRateInput').value;
+        const dh = document.getElementById('defaultHoursInput').value;
         const p = document.getElementById('passwordInput').value;
         
         db_bizName = n; 
-        db_currency = c;
-        db_hourlyRate = parseFloat(h) || 0;
+        db_defaultHours = parseFloat(dh) || 8;
 
         localStorage.setItem('pb_bizName', n);
-        localStorage.setItem('pb_currency', c);
-        localStorage.setItem('pb_hourlyRate', h);
+        localStorage.setItem('pb_defaultHours', dh);
 
         if(p && p.trim() !== '') {
             db_password = p;
@@ -1025,7 +1222,7 @@
             db_removed[appState.selectedDate].push(name);
             localStorage.setItem('pb_removed_data', JSON.stringify(db_removed));
             if(appState.selectedDate === appState.todayStr) {
-                db_live[name] = { state: 'out', lastAction: 0, totalWorkMs: 0, startTime: null };
+                db_live[name] = { state: 'out', lastAction: 0, totalWorkMs: 0, startTime: null, punches: [] };
                 localStorage.setItem('pb_live_data', JSON.stringify(db_live));
             }
             closeModal(); renderAttendanceView(); showToast("Removed");
@@ -1057,7 +1254,7 @@
         // Force a history entry so renderAttendanceView picks them up even if joined date is wrong (fallback)
         if(!db_history[appState.selectedDate]) db_history[appState.selectedDate] = {};
         if(!db_history[appState.selectedDate][name]) {
-             db_history[appState.selectedDate][name] = { workMs: 0, startTime: 0, endTime: 0, status: 'absent' };
+             db_history[appState.selectedDate][name] = { workMs: 0, startTime: 0, endTime: 0, status: 'absent', punches: [] };
              localStorage.setItem('pb_history_data', JSON.stringify(db_history));
         }
         
@@ -1096,7 +1293,14 @@
                         if(info.status === 'absent') {
                              rows += `<div class="h-row" style="border-left:3px solid var(--red)"><div class="h-main-row"><span class="h-name">${name}</span><span style="color:var(--red); font-weight:bold; font-size:0.8rem;">ABSENT</span></div></div>`;
                         } else {
-                             rows += `<div class="h-row"><div class="h-main-row"><span class="h-name">${name}</span><span class="h-time">${formatTime(info.workMs)}</span></div><div class="h-details"><div class="h-detail-item"><i class="fas fa-sign-in-alt"></i> First: ${formatClockTime(info.startTime)}</div><div class="h-detail-item"><i class="fas fa-sign-out-alt"></i> Last: ${formatClockTime(info.endTime)}</div></div></div>`;
+                             // Check for overtime
+                             const staffDefaultHours = s.defaultHours || db_defaultHours;
+                             const defaultHoursMs = staffDefaultHours * 3600000;
+                             const isOvertime = info.workMs > defaultHoursMs;
+                             const overtimeMs = isOvertime ? (info.workMs - defaultHoursMs) : 0;
+                             const overtimeTag = isOvertime ? `<span class="pill pill-overtime" style="margin-left:5px; font-size:0.65rem; padding:2px 8px;">OT: ${formatTime(overtimeMs)}</span>` : '';
+                             
+                             rows += `<div class="h-row"><div class="h-main-row"><span class="h-name">${name}</span><span class="h-time">${formatTime(info.workMs)}${overtimeTag}</span></div><div class="h-details"><div class="h-detail-item"><i class="fas fa-sign-in-alt"></i> First: ${formatClockTime(info.startTime)}</div><div class="h-detail-item"><i class="fas fa-sign-out-alt"></i> Last: ${formatClockTime(info.endTime)}</div></div></div>`;
                         }
                     } else {
                         // NO DATA = ABSENT
@@ -1176,9 +1380,17 @@
                     </div>`;
                 } else {
                     totalMonthMs += dayData.workMs;
+                    
+                    // Check for overtime
+                    const staffDefaultHours = staffObj.defaultHours || db_defaultHours;
+                    const defaultHoursMs = staffDefaultHours * 3600000;
+                    const isOvertime = dayData.workMs > defaultHoursMs;
+                    const overtimeMs = isOvertime ? (dayData.workMs - defaultHoursMs) : 0;
+                    const overtimeTag = isOvertime ? `<span class="pill pill-overtime" style="margin-left:5px; font-size:0.65rem; padding:2px 8px;">OT: ${formatTime(overtimeMs)}</span>` : '';
+                    
                     htmlBuffer += `
                     <div class="history-date-block">
-                        <div class="h-header"><span>${dateStr}</span> <span style="color:var(--pb-blue)">${formatTime(dayData.workMs)}</span></div>
+                        <div class="h-header"><span>${dateStr}</span> <span style="color:var(--pb-blue)">${formatTime(dayData.workMs)}${overtimeTag}</span></div>
                         <div class="h-details" style="padding:10px; background:var(--card-bg)">
                             <div class="h-detail-item">FIRST IN: ${formatClockTime(dayData.startTime)}</div>
                             <div class="h-detail-item">LAST OUT: ${formatClockTime(dayData.endTime)}</div>
